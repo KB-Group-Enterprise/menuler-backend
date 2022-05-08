@@ -1,10 +1,16 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { QrcodeService } from '../qrcode/qrcode.service';
+import { CreateQrcodeInput } from '../qrcode/dto/CreateQrcodeInput';
+import { Table } from './interfaces/table';
 
 @Injectable()
 export class RestaurantService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly qrcodeService: QrcodeService,
+  ) {}
 
   async createRestaurant(details: Prisma.RestaurantCreateInput) {
     const isExist = await this.prisma.restaurant.findUnique({
@@ -14,10 +20,21 @@ export class RestaurantService {
       throw new ConflictException({
         message: `Restaurant name ${details.restaurantName} is already exist`,
       });
-    return await this.prisma.restaurant.create({
-      data: {
-        ...details,
-      },
+    const newRestaurant = await this.prisma.restaurant.create({
+      data: { ...details },
+    });
+    return newRestaurant;
+  }
+
+  async insertTable(tableList: Table[]) {
+    // TODO findRestaurantId
+    const restaurantId = '627100646e64e68312ef5833';
+    tableList.forEach(async (table) => {
+      const qrcodeInput: CreateQrcodeInput = {
+        restaurantId,
+        tableName: table.tableName,
+      };
+      await this.qrcodeService.generateQrcode(qrcodeInput);
     });
   }
 }

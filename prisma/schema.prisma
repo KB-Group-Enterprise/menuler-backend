@@ -32,6 +32,17 @@ model Restaurant {
   registerOn            DateTime      @default(now())
   isActivate            Boolean  @default(true)
   status                restaurant_status  @default(OPEN)
+  qrcode                Qrcode[]
+}
+
+model Qrcode {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  tableToken            String
+  tableName             String
+  qrcodeImageUrl        String
+  isActivate            Boolean  @default(true)
+  restaurant            Restaurant   @relation(fields: [restaurantId], references: [id])
+  restaurantId          String   @db.ObjectId
 }
 
 enum menu_status {
