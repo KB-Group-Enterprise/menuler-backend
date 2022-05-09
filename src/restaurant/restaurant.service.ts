@@ -21,9 +21,9 @@ export class RestaurantService {
       where: { restaurantName: details.restaurantName },
     });
     if (isExist)
-      throw new ConflictException({
-        message: `Restaurant name ${details.restaurantName} is already exist`,
-      });
+      throw new ConflictException(
+        `Restaurant name ${details.restaurantName} is already exist`,
+      );
     const newRestaurant = await this.prisma.restaurant.create({
       data: { ...details },
     });

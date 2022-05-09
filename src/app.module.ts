@@ -8,10 +8,28 @@ import { RestaurantModule } from './restaurant/restaurant.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { QrcodeService } from './qrcode/qrcode.service';
 import { QrcodeModule } from './qrcode/qrcode.module';
-
+import { AdminService } from './admin/admin.service';
+import { AdminModule } from './admin/admin.module';
+import { AuthModule } from './auth/auth.module';
+import { ConfigModule } from '@nestjs/config';
 @Module({
-  imports: [RestaurantModule, PrismaModule, QrcodeModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    RestaurantModule,
+    PrismaModule,
+    QrcodeModule,
+    AdminModule,
+    AuthModule,
+  ],
   controllers: [AppController, RestaurantController],
-  providers: [AppService, PrismaService, RestaurantService, QrcodeService],
+  providers: [
+    AppService,
+    PrismaService,
+    RestaurantService,
+    QrcodeService,
+    AdminService,
+  ],
 })
 export class AppModule {}
