@@ -1,47 +1,77 @@
 import { Test } from '@nestjs/testing';
 import { Prisma, Restaurant } from '@prisma/client';
+import { QrcodeService } from '../../qrcode/qrcode.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RestaurantService } from '../restaurant.service';
 import { restaurantStub } from './stubs/restaurant.stub';
 
-jest.mock('../restaurant.service');
-
 describe('RestaurantService', () => {
   let restaurantService: RestaurantService;
-
+  let prismaService: PrismaService;
+  let mockRestaurant: Restaurant;
   beforeEach(async () => {
-    const moduelRef = await Test.createTestingModule({
-      providers: [RestaurantService],
+    // const mockPrismaService = {
+    //   restaurant: {
+    //     create: jest.fn().mockImplementation(() => ({})),
+    //     findUnique: jest.fn().mockImplementation(() => ({})),
+    //   },
+    // };
+    // const mockRestaurantService = {
+    //   createRestaurant: jest.fn().mockImplementation(() => restaurantStub()),
+    // };
+    const moduleRef = await Test.createTestingModule({
+      providers: [RestaurantService, PrismaService, QrcodeService],
+      // providers: [
+      //   {
+      //     provide: PrismaService,
+      //     useValue: mockPrismaService,
+      //   },
+      //   {
+      //     provide: RestaurantService,
+      //     useValue: mockRestaurantService,
+      //   },
+      // ],
     }).compile();
-    restaurantService = moduelRef.get<RestaurantService>(RestaurantService);
-    jest.clearAllMocks();
+    restaurantService = moduleRef.get<RestaurantService>(RestaurantService);
+    prismaService = moduleRef.get<PrismaService>(PrismaService);
+    // jest.clearAllMocks();
+    // const restaurantInput: Prisma.RestaurantCreateInput = {
+    //   location: restaurantStub().location,
+    //   restaurantName: restaurantStub().restaurantName,
+    //   registerOn: restaurantStub().registerOn,
+    // };
   });
-  it('it should be defined', () => {
+  afterEach(async () => {
+    try {
+      await restaurantService.deleteRestaurant(restaurantStub().restaurantName);
+    } catch (error) {}
+  });
+  it('it should be defined', async () => {
     expect(restaurantService).toBeDefined();
   });
-});
-// describe('createRestaurant', () => {
-//   describe('when createRestaurant is called', () => {
-//     let restaurant: Restaurant;
 
-//     const restaurantInput: Prisma.RestaurantCreateInput = {
-//       location: restaurantStub().location,
-//       restaurantName: restaurantStub().restaurantName,
-//       registerOn: restaurantStub().registerOn,
-//     };
-//     // const createRestaurantInput: CreateRestaurantInput = {
-//     //   location: restaurantStub().location,
-//     //   restaurantName: restaurantStub().restaurantName,
-//     //   status: 'OPEN',
-//     // };
-//     it('should return restaurant', async () => {
-//       jest
-//         .spyOn(restaurantService, 'createRestaurant')
-//         .mockResolvedValue(restaurantStub());
-//       expect(await restaurantService.createRestaurant(restaurantInput)).toBe(
-//         restaurantStub(),
-//       );
-//     });
-//   });
-// });
-// });
+  describe('createRestaurant', () => {
+    const restaurantInput: Prisma.RestaurantCreateInput = {
+      location: restaurantStub().location,
+      restaurantName: restaurantStub().restaurantName,
+      registerOn: restaurantStub().registerOn,
+    };
+    it('should create restaurant', async () => {
+      const restaurant = await restaurantService.createRestaurant(
+        restaurantInput,
+      );
+      expect(restaurant).toEqual({
+        ...restaurantStub(),
+        id: expect.any(String),
+      });
+    });
+    it('should throw conflict exception', async () => {
+      try {
+        await restaurantService.createRestaurant(restaurantInput);
+        await restaurantService.createRestaurant(restaurantInput);
+      } catch (error) {
+        expect(error.status).toBe(409);
+      }
+    });
+  });
+});

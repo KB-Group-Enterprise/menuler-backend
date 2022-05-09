@@ -1,4 +1,8 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { QrcodeService } from '../qrcode/qrcode.service';
@@ -36,5 +40,17 @@ export class RestaurantService {
       };
       await this.qrcodeService.generateQrcode(qrcodeInput);
     });
+  }
+
+  async deleteRestaurant(restaurantName: string) {
+    try {
+      await this.prisma.restaurant.delete({
+        where: { restaurantName },
+      });
+      // TODO delete qrcode of that restaurant
+    } catch (error) {
+      if (error.code === 'P2025')
+        throw new BadRequestException(error.meta.cause);
+    }
   }
 }

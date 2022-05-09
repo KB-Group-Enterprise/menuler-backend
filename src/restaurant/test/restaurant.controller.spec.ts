@@ -1,6 +1,4 @@
 import { Test } from '@nestjs/testing';
-import { Prisma, Restaurant } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
 import { CreateRestaurantInput } from '../dto/CreateRestaurantInput';
 import { RestaurantController } from '../restaurant.controller';
 import { RestaurantService } from '../restaurant.service';
