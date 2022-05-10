@@ -4,10 +4,11 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, Qrcode } from '@prisma/client';
 import { QrcodeService } from '../qrcode/qrcode.service';
 import { CreateQrcodeInput } from '../qrcode/dto/CreateQrcodeInput';
 import { Table } from './interfaces/table';
+import { QrcodeSize } from './interfaces/qrcodeSize';
 
 @Injectable()
 export class RestaurantService {
@@ -30,16 +31,28 @@ export class RestaurantService {
     return newRestaurant;
   }
 
-  async insertTable(tableList: Table[]) {
-    // TODO findRestaurantId
-    const restaurantId = '627100646e64e68312ef5833';
-    tableList.forEach(async (table) => {
+  async insertTable(restaurantId: string, tableList: Table[]) {
+    const qrcodeSuccessList: Qrcode[] = [];
+    const qrcodeFailList: { tableName: string }[] = [];
+    for (const table of tableList) {
       const qrcodeInput: CreateQrcodeInput = {
         restaurantId,
         tableName: table.tableName,
+        qrcodeSize: table.qrcodeSize,
       };
-      await this.qrcodeService.generateQrcode(qrcodeInput);
-    });
+      const { isSuccess, qrcode } = await this.qrcodeService.generateQrcode(
+        qrcodeInput,
+      );
+      if (isSuccess) {
+        qrcodeSuccessList.push(qrcode);
+      } else {
+        qrcodeFailList.push({ tableName: qrcode.tableName });
+      }
+    }
+    return {
+      qrcodeSuccessList,
+      qrcodeFailList,
+    };
   }
 
   async deleteRestaurant(restaurantName: string) {

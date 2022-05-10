@@ -6,9 +6,16 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterAdminInput } from '../auth/dto/RegisterAdmin.dto';
+import { RestaurantService } from 'src/restaurant/restaurant.service';
+import { CreateRestaurantInput } from 'src/restaurant/dto/CreateRestaurantInput';
+import { Table } from 'src/restaurant/interfaces/table';
+import { QrcodeSize } from 'src/restaurant/interfaces/qrcodeSize';
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly restaurantService: RestaurantService,
+  ) {}
 
   async createAdmin(detail: RegisterAdminInput) {
     const isAdminExist = await this.prisma.admin.findUnique({
@@ -54,10 +61,36 @@ export class AdminService {
       await this.prisma.admin.delete({
         where: { email },
       });
-      // TODO delete qrcode of that restaurant
     } catch (error) {
       if (error.code === 'P2025')
         throw new BadRequestException(error.meta.cause);
     }
+  }
+
+  async createRestaurant(
+    adminId: string,
+    restaurantDetails: CreateRestaurantInput,
+  ) {
+    const createdRestaurant = await this.restaurantService.createRestaurant(
+      restaurantDetails,
+    );
+    await this.prisma.admin.update({
+      where: {
+        id: adminId,
+      },
+      data: {
+        restaurantId: createdRestaurant.id,
+      },
+    });
+    return createdRestaurant;
+  }
+
+  async insertTable(adminId: string, tables: Table[]) {
+    const admin = await this.findAdminByAdminId(adminId);
+    const qrcodeList = await this.restaurantService.insertTable(
+      admin.restaurantId,
+      tables,
+    );
+    return qrcodeList;
   }
 }
