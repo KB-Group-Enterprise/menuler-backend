@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from 'src/prisma/prisma.module';
-import { QrcodeModule } from 'src/qrcode/qrcode.module';
+import { PrismaModule } from '../prisma/prisma.module';
+import { QrcodeModule } from '../qrcode/qrcode.module';
 import { RestaurantService } from './restaurant.service';
 
 @Module({

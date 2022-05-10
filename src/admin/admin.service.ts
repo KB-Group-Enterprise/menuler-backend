@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { RegisterAdminInput } from '../auth/dto/RegisterAdmin.dto';
 @Injectable()
 export class AdminService {
@@ -49,10 +49,10 @@ export class AdminService {
     return admin;
   }
 
-  private async deleteAdminById(adminId: string) {
+  async deleteAdminByEmail(email: string) {
     try {
       await this.prisma.admin.delete({
-        where: { id: adminId },
+        where: { email },
       });
       // TODO delete qrcode of that restaurant
     } catch (error) {
