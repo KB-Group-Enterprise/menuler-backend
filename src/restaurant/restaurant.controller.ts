@@ -1,4 +1,12 @@
-import { Body, Controller, Param, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import { Admin } from '@prisma/client';
 import { CurrentUser } from 'src/auth/current-user';
 import { JwtAdminAuthGuard } from 'src/auth/guards/jwt.guard';
@@ -41,6 +49,28 @@ export class RestaurantController {
         success: qrcodeSuccessList,
         conflict: qrcodeFailList,
       },
+    };
+  }
+
+  @Get('/:restaurantId/menu')
+  async getAllMenu(@Param('restaurantId') restaurantId: string) {
+    const menu = await this.restaurantService.findAllMenuByRestaurantId(
+      restaurantId,
+    );
+    return {
+      data: { menu },
+      message: `get all menu of restaurantId: ${restaurantId}`,
+    };
+  }
+
+  @Get('/:restaurantId')
+  async getRestaurant(@Param('restaurantId') restaurantId: string) {
+    const restaurant = await this.restaurantService.findRestaurantById(
+      restaurantId,
+    );
+    return {
+      data: { restaurant },
+      message: `get detail of restaurantId: ${restaurant.id}`,
     };
   }
 

@@ -12,7 +12,7 @@ datasource db {
 
 model Menu {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
-  foodName              String   @unique
+  foodName              String   
   category              String
   description           String?   
   imageUrl              String
@@ -22,6 +22,7 @@ model Menu {
   updatedAt             DateTime    @default(now())
   restaurant            Restaurant  @relation(fields: [restaurantId], references: [id])
   restaurantId          String  @db.ObjectId
+  @@unique([restaurantId,foodName])
 }
 
 model Restaurant {

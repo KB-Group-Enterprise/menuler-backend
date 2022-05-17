@@ -78,9 +78,14 @@ export class RestaurantService {
     }
   }
 
-  async checkExistMenu(foodName: string) {
-    const existMenu = await this.prisma.menu.findFirst({
-      where: { foodName },
+  async checkExistMenu(foodName: string, restaurantId: string) {
+    const existMenu = await this.prisma.menu.findUnique({
+      where: {
+        restaurantId_foodName: {
+          foodName,
+          restaurantId,
+        },
+      },
     });
     return existMenu ? true : false;
   }
@@ -90,7 +95,10 @@ export class RestaurantService {
     const menuConflictList: { foodName: string }[] = [];
     for (const menu of menuList) {
       const { category, foodName, price, description, isAvailable } = menu;
-      const isMenuExist = await this.checkExistMenu(foodName);
+      const isMenuExist = await this.checkExistMenu(
+        foodName,
+        admin.restaurantId,
+      );
       if (!isMenuExist) {
         const createdMenu = await this.prisma.menu.create({
           data: {
@@ -130,5 +138,23 @@ export class RestaurantService {
         throw new BadRequestException(error.meta.cause);
       throw new BadRequestException(error);
     }
+  }
+
+  async findAllMenuByRestaurantId(restaurantId: string) {
+    const { menu } = await this.prisma.restaurant.findUnique({
+      where: { id: restaurantId },
+      include: { menu: true },
+    });
+    return menu;
+  }
+
+  async findRestaurantById(restaurantId: string) {
+    const restaurant = await this.prisma.restaurant.findUnique({
+      where: {
+        id: restaurantId,
+      },
+      include: { menu: true, qrcode: true, admin: true },
+    });
+    return restaurant;
   }
 }
