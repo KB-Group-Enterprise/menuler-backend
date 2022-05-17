@@ -8,7 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateQrcodeInput } from './dto/CreateQrcodeInput';
 import { v4 as uuidv4 } from 'uuid';
 import { Prisma } from '@prisma/client';
-import { QrcodeSize } from 'src/restaurant/interfaces/qrcodeSize';
+import { QrcodeSize } from '../restaurant/dto/qrcode/QrcodeSize.dto';
 
 @Injectable()
 export class QrcodeService {

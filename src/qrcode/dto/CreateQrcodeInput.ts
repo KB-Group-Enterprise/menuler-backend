@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsOptional } from 'class-validator';
-import { QrcodeSize } from 'src/restaurant/interfaces/qrcodeSize';
+import { QrcodeSize } from '../../restaurant/dto/qrcode/QrcodeSize.dto';
 
 export class CreateQrcodeInput {
   @IsNotEmpty()

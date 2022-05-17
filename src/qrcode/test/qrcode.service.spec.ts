@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Prisma } from '@prisma/client';
-import { CreateRestaurantInput } from 'src/restaurant/dto/CreateRestaurantInput';
+import { CreateRestaurantInput } from 'src/restaurant/dto/restaurant/CreateRestaurantInput';
 import { RestaurantService } from '../../restaurant/restaurant.service';
 import { restaurantStub } from '../../restaurant/test/stubs/restaurant.stub';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -36,10 +36,10 @@ describe('QrcodeService', () => {
         restaurantName: restaurantStub().restaurantName,
         status: restaurantStub().status,
       };
-      const restaurant = await restaurantService.createRestaurant(
-        restaurantInput,
-      );
-      tableDetail.restaurantId = restaurant.id;
+      // const restaurant = await restaurantService.createRestaurant(
+      //   restaurantInput,
+      // );
+      // tableDetail.restaurantId = restaurant.id;
     } catch (error) {}
   });
 

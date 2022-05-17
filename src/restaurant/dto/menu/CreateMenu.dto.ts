@@ -1,6 +1,5 @@
 import { menu_status } from '@prisma/client';
 import {
-  IsArray,
   IsEnum,
   IsNotEmpty,
   IsNumber,

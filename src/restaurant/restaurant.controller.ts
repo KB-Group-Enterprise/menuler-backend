@@ -1,12 +1,12 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { Admin } from '@prisma/client';
 import { CurrentUser } from 'src/auth/current-user';
 import { JwtAdminAuthGuard } from 'src/auth/guards/jwt.guard';
-import { CreateMenuDto } from './dto/CreateMenu.dto';
-import { CreateMenuList } from './dto/CreateMenuList.dto';
-import { CreateRestaurantInput } from './dto/CreateRestaurantInput';
-import { CreateTableRequest } from './dto/CreateTableRequest';
+import { CreateMenuList } from './dto/menu/CreateMenuList.dto';
+import { CreateRestaurantInput } from './dto/restaurant/CreateRestaurantInput';
+import { CreateTableRequest } from './dto/qrcode/CreateTableRequest';
 import { RestaurantService } from './restaurant.service';
+import { UpdateMenuInput } from './dto/menu/UpdateMenu.dto';
 
 @Controller('restaurant')
 export class RestaurantController {
@@ -24,7 +24,7 @@ export class RestaurantController {
     );
     return {
       data: { restaurant },
-      message: 'generate restaurant success',
+      message: 'create restaurant success',
     };
   }
 
@@ -59,6 +59,25 @@ export class RestaurantController {
         success: menuSuccessList,
         conflict: menuConflictList,
       },
+    };
+  }
+
+  @Put('/menu/:menuId')
+  @UseGuards(JwtAdminAuthGuard)
+  async updateMenu(
+    @Body() updateDetail: UpdateMenuInput,
+    @Param('menuId') menuId: string,
+  ) {
+    // TODO imageUrl
+    const imageUrl = 'mockUrl';
+    const updatedMenu = await this.restaurantService.updateMenu(
+      menuId,
+      updateDetail,
+      imageUrl,
+    );
+    return {
+      data: { menu: updatedMenu },
+      message: 'update menu success',
     };
   }
 }

@@ -7,9 +7,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Admin, Menu, Prisma, Qrcode } from '@prisma/client';
 import { QrcodeService } from '../qrcode/qrcode.service';
 import { CreateQrcodeInput } from '../qrcode/dto/CreateQrcodeInput';
-import { Table } from './interfaces/table';
-import { AdminService } from 'src/admin/admin.service';
-import { CreateMenuList } from './dto/CreateMenuList.dto';
+import { AdminService } from '../admin/admin.service';
+import { CreateMenuList } from './dto/menu/CreateMenuList.dto';
+import { TableInput } from './dto/qrcode/TableInput.dto';
 
 @Injectable()
 export class RestaurantService {
@@ -41,7 +41,7 @@ export class RestaurantService {
     return newRestaurant;
   }
 
-  async insertTable(admin: Admin, tableList: Table[]) {
+  async insertTable(admin: Admin, tableList: TableInput[]) {
     const qrcodeSuccessList: Qrcode[] = [];
     const qrcodeFailList: { tableName: string }[] = [];
     for (const table of tableList) {
@@ -74,6 +74,7 @@ export class RestaurantService {
     } catch (error) {
       if (error.code === 'P2025')
         throw new BadRequestException(error.meta.cause);
+      throw new BadRequestException(error);
     }
   }
 
@@ -111,5 +112,23 @@ export class RestaurantService {
       menuSuccessList,
       menuConflictList,
     };
+  }
+
+  async updateMenu(
+    menuId: string,
+    details: Prisma.MenuUpdateInput,
+    imageUrl: string,
+  ) {
+    try {
+      const updatedMenu = await this.prisma.menu.update({
+        data: { ...details, updatedAt: new Date(), imageUrl },
+        where: { id: menuId },
+      });
+      return updatedMenu;
+    } catch (error) {
+      if (error.code === 'P2025')
+        throw new BadRequestException(error.meta.cause);
+      throw new BadRequestException(error);
+    }
   }
 }
