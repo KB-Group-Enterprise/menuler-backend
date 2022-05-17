@@ -4,20 +4,24 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, Qrcode } from '@prisma/client';
+import { Admin, Prisma, Qrcode } from '@prisma/client';
 import { QrcodeService } from '../qrcode/qrcode.service';
 import { CreateQrcodeInput } from '../qrcode/dto/CreateQrcodeInput';
 import { Table } from './interfaces/table';
-import { QrcodeSize } from './interfaces/qrcodeSize';
+import { AdminService } from 'src/admin/admin.service';
 
 @Injectable()
 export class RestaurantService {
   constructor(
     private prisma: PrismaService,
     private readonly qrcodeService: QrcodeService,
+    private readonly adminService: AdminService,
   ) {}
 
-  async createRestaurant(details: Prisma.RestaurantCreateInput) {
+  async createRestaurant(
+    adminId: string,
+    details: Prisma.RestaurantCreateInput,
+  ) {
     const isExist = await this.prisma.restaurant.findUnique({
       where: { restaurantName: details.restaurantName },
     });
@@ -28,15 +32,20 @@ export class RestaurantService {
     const newRestaurant = await this.prisma.restaurant.create({
       data: { ...details },
     });
+
+    await this.adminService.updateAdminWithRestaurantId(
+      adminId,
+      newRestaurant.id,
+    );
     return newRestaurant;
   }
 
-  async insertTable(restaurantId: string, tableList: Table[]) {
+  async insertTable(admin: Admin, tableList: Table[]) {
     const qrcodeSuccessList: Qrcode[] = [];
     const qrcodeFailList: { tableName: string }[] = [];
     for (const table of tableList) {
       const qrcodeInput: CreateQrcodeInput = {
-        restaurantId,
+        restaurantId: admin.restaurantId,
         tableName: table.tableName,
         qrcodeSize: table.qrcodeSize,
       };
