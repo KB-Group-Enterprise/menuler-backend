@@ -12,7 +12,7 @@ datasource db {
 
 model Menu {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
-  foodName              String
+  foodName              String   @unique
   category              String
   description           String?   
   imageUrl              String

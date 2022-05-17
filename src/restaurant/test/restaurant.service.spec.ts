@@ -75,4 +75,13 @@ describe('RestaurantService', () => {
     });
     // TODO check restaurantId in admin after createRestaurant
   });
+
+  // TODO insertTable
+  it.todo('insertTable', () => {
+    // TODO check conflict, success array
+  });
+  it.todo('addMenu', () => {
+    // TODO check conflict,success array
+    // TODO test checkExistMenu
+  });
 });

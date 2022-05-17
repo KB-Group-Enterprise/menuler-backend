@@ -4,11 +4,12 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Admin, Prisma, Qrcode } from '@prisma/client';
+import { Admin, Menu, Prisma, Qrcode } from '@prisma/client';
 import { QrcodeService } from '../qrcode/qrcode.service';
 import { CreateQrcodeInput } from '../qrcode/dto/CreateQrcodeInput';
 import { Table } from './interfaces/table';
 import { AdminService } from 'src/admin/admin.service';
+import { CreateMenuList } from './dto/CreateMenuList.dto';
 
 @Injectable()
 export class RestaurantService {
@@ -74,5 +75,41 @@ export class RestaurantService {
       if (error.code === 'P2025')
         throw new BadRequestException(error.meta.cause);
     }
+  }
+
+  async checkExistMenu(foodName: string) {
+    const existMenu = await this.prisma.menu.findFirst({
+      where: { foodName },
+    });
+    return existMenu ? true : false;
+  }
+
+  async addMenu({ menuList }: CreateMenuList, imageUrl: string, admin: Admin) {
+    const menuSuccessList: Menu[] = [];
+    const menuConflictList: { foodName: string }[] = [];
+    for (const menu of menuList) {
+      const { category, foodName, price, description, isAvailable } = menu;
+      const isMenuExist = await this.checkExistMenu(foodName);
+      if (!isMenuExist) {
+        const createdMenu = await this.prisma.menu.create({
+          data: {
+            category,
+            foodName,
+            price,
+            description,
+            isAvailable,
+            imageUrl,
+            restaurantId: admin.restaurantId,
+          },
+        });
+        menuSuccessList.push(createdMenu);
+      } else {
+        menuConflictList.push({ foodName });
+      }
+    }
+    return {
+      menuSuccessList,
+      menuConflictList,
+    };
   }
 }
