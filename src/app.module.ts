@@ -12,6 +12,7 @@ import { AdminService } from './admin/admin.service';
 import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
+import { MenuModule } from './menu/menu.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -22,6 +23,7 @@ import { ConfigModule } from '@nestjs/config';
     QrcodeModule,
     AdminModule,
     AuthModule,
+    MenuModule,
   ],
   controllers: [AppController, RestaurantController],
   providers: [
