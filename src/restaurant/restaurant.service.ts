@@ -85,4 +85,23 @@ export class RestaurantService {
   async findAllRestaurant() {
     return await this.prisma.restaurant.findMany();
   }
+
+  async updateRestaurantInfo(
+    admin: Admin,
+    details: Prisma.RestaurantUpdateInput,
+  ) {
+    const updatedRestaurant = await this.prisma.restaurant.update({
+      data: {
+        ...details,
+        updatedAt: new Date(),
+        updatedBy: {
+          connect: {
+            id: admin.id,
+          },
+        },
+      },
+      where: { id: admin.restaurantId },
+    });
+    return updatedRestaurant;
+  }
 }

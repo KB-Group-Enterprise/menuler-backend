@@ -1,10 +1,20 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import { Admin } from '@prisma/client';
 import { CurrentUser } from 'src/auth/current-user';
 import { JwtAdminAuthGuard } from 'src/auth/guards/jwt.guard';
 import { CreateRestaurantInput } from './dto/restaurant/CreateRestaurantInput';
 import { CreateTableRequest } from './dto/qrcode/CreateTableRequest';
 import { RestaurantService } from './restaurant.service';
+import { UpdateMenuInput } from 'src/menu/dto/UpdateMenu.dto';
+import { UpdateRestaurantDto } from './dto/restaurant/UpdateRestaurant.dto';
 
 @Controller('restaurant')
 export class RestaurantController {
@@ -61,6 +71,24 @@ export class RestaurantController {
         restaurantList: allRestaurant,
       },
       message: 'get all restaurant',
+    };
+  }
+
+  @Put('/')
+  @UseGuards(JwtAdminAuthGuard)
+  async updateRestaurant(
+    @Body() updateDetail: UpdateRestaurantDto,
+    @CurrentUser() admin: Admin,
+  ) {
+    const updatedRestaurant = await this.restaurantService.updateRestaurantInfo(
+      admin,
+      updateDetail,
+    );
+    return {
+      data: {
+        restaurant: updatedRestaurant,
+      },
+      message: `update restaurant id: ${admin.restaurantId} success`,
     };
   }
 }

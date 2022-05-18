@@ -7,4 +7,5 @@ export const restaurantStub = (): Restaurant => ({
   registerOn: new Date('2022-05-06T10:02:52.680Z'),
   restaurantName: 'mockRestaurant',
   status: 'OPEN',
+  updatedAt: new Date(),
 });

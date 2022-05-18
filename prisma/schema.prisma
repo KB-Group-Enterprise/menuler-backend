@@ -35,7 +35,10 @@ model Restaurant {
   isActivate            Boolean  @default(true)
   status                restaurant_status  @default(OPEN)
   qrcode                Qrcode[]
-  admin                 Admin[]          
+  admin                 Admin[] @relation("AdminRestaurant")
+  updatedAt             DateTime  @default(now())
+  updatedBy             Admin?  @relation("AdminUpdate")
+
 }
 
 model Qrcode {
@@ -53,8 +56,10 @@ model Admin {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
   email                 String   @unique
   password              String
-  restaurant            Restaurant?   @relation(fields: [restaurantId], references: [id])
+  restaurant            Restaurant?   @relation("AdminRestaurant" ,fields: [restaurantId], references: [id])
   restaurantId          String?   @db.ObjectId
+  updateRestaurant      Restaurant?   @relation("AdminUpdate", fields: [updateRestaurantId], references: [id])
+  updateRestaurantId    String?   @db.ObjectId
 }
 
 enum menu_status {
