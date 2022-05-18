@@ -1,14 +1,10 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateQrcodeInput } from './dto/CreateQrcodeInput';
 import { v4 as uuidv4 } from 'uuid';
 import { Prisma } from '@prisma/client';
 import { QrcodeSize } from '../restaurant/dto/qrcode/QrcodeSize.dto';
+import { PrismaException } from 'src/exception/Prisma.exception';
 
 @Injectable()
 export class QrcodeService {
@@ -83,8 +79,7 @@ export class QrcodeService {
         },
       });
     } catch (error) {
-      if (error.code === 'P2025')
-        throw new BadRequestException(error.meta.cause);
+      throw new PrismaException(error.meta.cause);
     }
   }
 
@@ -92,7 +87,6 @@ export class QrcodeService {
     const qrcodeList = await this.prisma.qrcode.findMany({
       where: { restaurantId },
     });
-    console.log(qrcodeList);
     return qrcodeList;
   }
 }

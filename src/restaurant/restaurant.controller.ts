@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -74,6 +75,15 @@ export class RestaurantController {
     };
   }
 
+  @Get('/menu/:menuId')
+  async getMenuById(@Param('menuId') menuId: string) {
+    const menu = await this.restaurantService.findMenuById(menuId);
+    return {
+      data: { menu },
+      message: `get menu by menuId: ${menuId}`,
+    };
+  }
+
   @Post('/menu')
   @UseGuards(JwtAdminAuthGuard)
   async insertMenu(
@@ -97,6 +107,7 @@ export class RestaurantController {
   async updateMenu(
     @Body() updateDetail: UpdateMenuInput,
     @Param('menuId') menuId: string,
+    @CurrentUser() admin: Admin,
   ) {
     // TODO imageUrl
     const imageUrl = 'mockUrl';
@@ -104,10 +115,23 @@ export class RestaurantController {
       menuId,
       updateDetail,
       imageUrl,
+      admin,
     );
     return {
       data: { menu: updatedMenu },
       message: 'update menu success',
+    };
+  }
+
+  @Delete('/menu/:menuId')
+  @UseGuards(JwtAdminAuthGuard)
+  async deleteMenu(
+    @Param('menuId') menuId: string,
+    @CurrentUser() admin: Admin,
+  ) {
+    await this.restaurantService.deleteMenu(menuId, admin);
+    return {
+      message: `menu id: ${menuId} has been deleted`,
     };
   }
 }

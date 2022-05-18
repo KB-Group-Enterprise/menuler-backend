@@ -1,11 +1,11 @@
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterAdminInput } from '../auth/dto/RegisterAdmin.dto';
+import { PrismaException } from 'src/exception/Prisma.exception';
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
@@ -55,8 +55,7 @@ export class AdminService {
         where: { email },
       });
     } catch (error) {
-      if (error.code === 'P2025')
-        throw new BadRequestException(error.meta.cause);
+      throw new PrismaException(error);
     }
   }
 }

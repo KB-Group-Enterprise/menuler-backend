@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-} from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Admin, Menu, Prisma, Qrcode } from '@prisma/client';
 import { QrcodeService } from '../qrcode/qrcode.service';
@@ -10,6 +6,7 @@ import { CreateQrcodeInput } from '../qrcode/dto/CreateQrcodeInput';
 import { AdminService } from '../admin/admin.service';
 import { CreateMenuList } from './dto/menu/CreateMenuList.dto';
 import { TableInput } from './dto/qrcode/TableInput.dto';
+import { PrismaException } from '../exception/Prisma.exception';
 
 @Injectable()
 export class RestaurantService {
@@ -72,9 +69,7 @@ export class RestaurantService {
       });
       // TODO delete qrcode of that restaurant
     } catch (error) {
-      if (error.code === 'P2025')
-        throw new BadRequestException(error.meta.cause);
-      throw new BadRequestException(error);
+      throw new PrismaException(error);
     }
   }
 
@@ -126,17 +121,21 @@ export class RestaurantService {
     menuId: string,
     details: Prisma.MenuUpdateInput,
     imageUrl: string,
+    admin: Admin,
   ) {
     try {
       const updatedMenu = await this.prisma.menu.update({
         data: { ...details, updatedAt: new Date(), imageUrl },
-        where: { id: menuId },
+        where: {
+          restaurantId_id: {
+            id: menuId,
+            restaurantId: admin.restaurantId,
+          },
+        },
       });
       return updatedMenu;
     } catch (error) {
-      if (error.code === 'P2025')
-        throw new BadRequestException(error.meta.cause);
-      throw new BadRequestException(error);
+      throw new PrismaException(error);
     }
   }
 
@@ -156,5 +155,26 @@ export class RestaurantService {
       include: { menu: true, qrcode: true, admin: true },
     });
     return restaurant;
+  }
+
+  async findMenuById(menuId: string) {
+    return await this.prisma.menu.findUnique({
+      where: { id: menuId },
+    });
+  }
+
+  async deleteMenu(menuId: string, admin: Admin) {
+    try {
+      await this.prisma.menu.delete({
+        where: {
+          restaurantId_id: {
+            id: menuId,
+            restaurantId: admin.restaurantId,
+          },
+        },
+      });
+    } catch (error) {
+      throw new PrismaException(error);
+    }
   }
 }
