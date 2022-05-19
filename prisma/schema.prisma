@@ -50,6 +50,7 @@ model Table {
   restaurant            Restaurant   @relation(fields: [restaurantId], references: [id])
   restaurantId          String   @db.ObjectId
   @@unique([tableName,restaurantId])
+  @@unique([id, restaurantId])
 }
 
 model Admin {

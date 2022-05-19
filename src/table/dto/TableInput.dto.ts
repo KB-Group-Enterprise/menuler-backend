@@ -1,9 +1,10 @@
 import { Type } from 'class-transformer';
-import { IsNotEmpty, ValidateNested } from 'class-validator';
+import { IsNotEmpty, IsString, ValidateNested } from 'class-validator';
 import { QrcodeSize } from './QrcodeSize.dto';
 
 export class TableInput {
   @IsNotEmpty()
+  @IsString()
   tableName: string;
 
   @IsNotEmpty()

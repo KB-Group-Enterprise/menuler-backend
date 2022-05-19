@@ -1,28 +1,26 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateQrcodeInput } from './dto/CreateQrcodeInput';
 import { v4 as uuidv4 } from 'uuid';
 import { Admin, Prisma, Table } from '@prisma/client';
-import { QrcodeSize } from '../restaurant/dto/qrcode/QrcodeSize.dto';
+import { QrcodeSize } from './dto/QrcodeSize.dto';
 import { PrismaException } from 'src/exception/Prisma.exception';
-import { TableInput } from 'src/restaurant/dto/qrcode/TableInput.dto';
+import { TableInput } from './dto/TableInput.dto';
+import { UpdateTableInput } from './dto/UpdateTableInput';
 
 @Injectable()
 export class TableService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async generateQrcode(tableDetail: CreateQrcodeInput) {
+  async generateQrcode(restaurantId: string, tableDetail: TableInput) {
     const existRestaurant = await this.prisma.restaurant.findUnique({
-      where: { id: tableDetail.restaurantId },
+      where: { id: restaurantId },
     });
     if (!existRestaurant)
-      throw new NotFoundException(
-        `restaurant id : ${tableDetail.restaurantId} not found`,
-      );
+      throw new NotFoundException(`restaurant id : ${restaurantId} not found`);
     const existQrcode = await this.prisma.table.findFirst({
       where: {
         tableName: tableDetail.tableName,
-        restaurantId: tableDetail.restaurantId,
+        restaurantId: restaurantId,
       },
     });
     if (existQrcode) {
@@ -40,7 +38,7 @@ export class TableService {
         ),
         tableName: tableDetail.tableName,
         tableToken,
-        restaurantId: tableDetail.restaurantId,
+        restaurantId: restaurantId,
       },
     });
     return {
@@ -95,12 +93,14 @@ export class TableService {
     const qrcodeSuccessList: Table[] = [];
     const qrcodeFailList: { tableName: string }[] = [];
     for (const tableRequest of tableList) {
-      const qrcodeInput: CreateQrcodeInput = {
-        restaurantId: admin.restaurantId,
+      const qrcodeInput: TableInput = {
         tableName: tableRequest.tableName,
         qrcodeSize: tableRequest.qrcodeSize,
       };
-      const { isSuccess, table } = await this.generateQrcode(qrcodeInput);
+      const { isSuccess, table } = await this.generateQrcode(
+        admin.restaurantId,
+        qrcodeInput,
+      );
       if (isSuccess) {
         qrcodeSuccessList.push(table);
       } else {
@@ -125,5 +125,22 @@ export class TableService {
       where: { id: tableId },
     });
     return table;
+  }
+
+  async updateTable(tableId: string, details: UpdateTableInput, admin: Admin) {
+    try {
+      const table = await this.prisma.table.update({
+        data: { ...details },
+        where: {
+          id_restaurantId: {
+            id: tableId,
+            restaurantId: admin.restaurantId,
+          },
+        },
+      });
+      return table;
+    } catch (error) {
+      throw new PrismaException(error);
+    }
   }
 }

@@ -4,15 +4,17 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Res,
   UseGuards,
 } from '@nestjs/common';
 import { TableService } from './table.service';
 import { Response } from 'express';
 import { JwtAdminAuthGuard } from 'src/auth/guards/jwt.guard';
-import { CreateTableRequest } from 'src/restaurant/dto/qrcode/CreateTableRequest';
+import { CreateTableRequest } from './dto/CreateTableRequest';
 import { CurrentUser } from 'src/auth/current-user';
 import { Admin } from '@prisma/client';
+import { UpdateTableInput } from './dto/UpdateTableInput';
 
 @Controller('table')
 export class TableController {
@@ -63,6 +65,20 @@ export class TableController {
     return {
       data: { table },
       message: `get table by table id : ${tableId}`,
+    };
+  }
+
+  @Put('/:tableId')
+  @UseGuards(JwtAdminAuthGuard)
+  async updateTable(
+    @Param('tableId') tableId: string,
+    @Body() details: UpdateTableInput,
+    @CurrentUser() admin: Admin,
+  ) {
+    const table = await this.tableService.updateTable(tableId, details, admin);
+    return {
+      data: { table },
+      message: `update table id : ${tableId} success`,
     };
   }
 }
