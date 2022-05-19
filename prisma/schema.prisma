@@ -20,7 +20,7 @@ model Menu {
   isAvailable           menu_status   @default(NORMAL)
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @default(now())
-  restaurant            Restaurant  @relation(fields: [restaurantId], references: [id])
+  restaurant            Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   restaurantId          String  @db.ObjectId
   @@unique([restaurantId,foodName])
   @@unique([restaurantId, id])
@@ -29,7 +29,7 @@ model Menu {
 model Restaurant {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
   restaurantName        String   @unique
-  menu                  Menu[]
+  menu                  Menu[]   
   location              String
   registerOn            DateTime      @default(now())
   isActivate            Boolean  @default(true)

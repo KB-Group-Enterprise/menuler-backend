@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -27,7 +28,7 @@ export class RestaurantController {
     @CurrentUser() admin: Admin,
   ) {
     const restaurant = await this.restaurantService.createRestaurant(
-      admin.id,
+      admin,
       restaurantDetails,
     );
     return {
@@ -89,6 +90,18 @@ export class RestaurantController {
         restaurant: updatedRestaurant,
       },
       message: `update restaurant id: ${admin.restaurantId} success`,
+    };
+  }
+
+  @Delete('/:restaurantId')
+  @UseGuards(JwtAdminAuthGuard)
+  async deleteRestaurant(
+    @Param('restaurantId') restaurantId: string,
+    @CurrentUser() admin: Admin,
+  ) {
+    await this.restaurantService.deleteRestaurantById(restaurantId, admin);
+    return {
+      message: `delete restaurant id: ${restaurantId} success`,
     };
   }
 }

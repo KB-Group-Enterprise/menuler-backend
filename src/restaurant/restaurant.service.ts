@@ -1,4 +1,8 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Admin, Prisma, Qrcode } from '@prisma/client';
 import { QrcodeService } from '../qrcode/qrcode.service';
@@ -15,10 +19,7 @@ export class RestaurantService {
     private readonly adminService: AdminService,
   ) {}
 
-  async createRestaurant(
-    adminId: string,
-    details: Prisma.RestaurantCreateInput,
-  ) {
+  async createRestaurant(admin: Admin, details: Prisma.RestaurantCreateInput) {
     const isExist = await this.prisma.restaurant.findUnique({
       where: { restaurantName: details.restaurantName },
     });
@@ -26,12 +27,15 @@ export class RestaurantService {
       throw new ConflictException(
         `Restaurant name ${details.restaurantName} is already exist`,
       );
+    if (admin.restaurantId) {
+      throw new BadRequestException('you alreay have restaurant');
+    }
     const newRestaurant = await this.prisma.restaurant.create({
       data: { ...details },
     });
 
     await this.adminService.updateAdminWithRestaurantId(
-      adminId,
+      admin.id,
       newRestaurant.id,
     );
     return newRestaurant;
@@ -103,5 +107,20 @@ export class RestaurantService {
       where: { id: admin.restaurantId },
     });
     return updatedRestaurant;
+  }
+
+  async deleteRestaurantById(restaurantId: string, admin: Admin) {
+    try {
+      if (restaurantId !== admin.restaurantId)
+        throw new BadRequestException('you can only delete your restaurant');
+
+      await this.prisma.restaurant.delete({
+        where: {
+          id: restaurantId,
+        },
+      });
+    } catch (error) {
+      throw new PrismaException(error);
+    }
   }
 }
