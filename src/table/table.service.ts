@@ -112,4 +112,11 @@ export class TableService {
       qrcodeFailList,
     };
   }
+
+  async findAllTableByRestaurantId(restaurantId: string) {
+    const tables = await this.prisma.table.findMany({
+      where: { restaurantId },
+    });
+    return tables;
+  }
 }

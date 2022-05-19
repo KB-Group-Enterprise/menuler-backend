@@ -27,6 +27,7 @@ export class TableController {
       data: table,
     });
   }
+
   @Post('/')
   @UseGuards(JwtAdminAuthGuard)
   async createTable(
@@ -40,6 +41,19 @@ export class TableController {
         success: qrcodeSuccessList,
         conflict: qrcodeFailList,
       },
+    };
+  }
+
+  @Get('/restaurant/:restaurantId')
+  async getAllTableByRestaurantId(@Param('restaurantId') restaurantId: string) {
+    const tables = await this.tableService.findAllTableByRestaurantId(
+      restaurantId,
+    );
+    return {
+      data: {
+        allTables: tables,
+      },
+      message: `get all table of restaurant id : ${restaurantId}`,
     };
   }
 }
