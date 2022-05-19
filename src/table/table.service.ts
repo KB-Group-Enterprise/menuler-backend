@@ -119,4 +119,11 @@ export class TableService {
     });
     return tables;
   }
+
+  async findTableById(tableId: string) {
+    const table = await this.prisma.table.findUnique({
+      where: { id: tableId },
+    });
+    return table;
+  }
 }

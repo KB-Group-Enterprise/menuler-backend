@@ -17,7 +17,7 @@ import { Admin } from '@prisma/client';
 @Controller('table')
 export class TableController {
   constructor(private readonly tableService: TableService) {}
-  @Get('/:tableToken')
+  @Get('/token/:tableToken')
   async getTable(
     @Param('tableToken') tableToken: string,
     @Res() res: Response,
@@ -54,6 +54,15 @@ export class TableController {
         allTables: tables,
       },
       message: `get all table of restaurant id : ${restaurantId}`,
+    };
+  }
+
+  @Get('/:tableId')
+  async getTableById(@Param('tableId') tableId: string) {
+    const table = await this.tableService.findTableById(tableId);
+    return {
+      data: { table },
+      message: `get table by table id : ${tableId}`,
     };
   }
 }
