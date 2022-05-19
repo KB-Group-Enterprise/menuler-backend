@@ -118,4 +118,9 @@ describe('QrcodeService', () => {
       }
     });
   });
+
+  // TODO insertTable
+  it.todo('insertTable', () => {
+    // TODO check conflict, success array
+  });
 });
