@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -79,6 +80,18 @@ export class TableController {
     return {
       data: { table },
       message: `update table id : ${tableId} success`,
+    };
+  }
+
+  @Delete('/:tableId')
+  @UseGuards(JwtAdminAuthGuard)
+  async deleteTableById(
+    @Param('tableId') tableId: string,
+    @CurrentUser() admin: Admin,
+  ) {
+    await this.tableService.deleteTable(tableId, admin);
+    return {
+      message: `delete table id ${tableId} success`,
     };
   }
 }

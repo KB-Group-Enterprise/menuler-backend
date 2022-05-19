@@ -143,4 +143,19 @@ export class TableService {
       throw new PrismaException(error);
     }
   }
+
+  async deleteTable(tableId: string, admin: Admin) {
+    try {
+      await this.prisma.table.delete({
+        where: {
+          id_restaurantId: {
+            id: tableId,
+            restaurantId: admin.restaurantId,
+          },
+        },
+      });
+    } catch (error) {
+      throw new PrismaException(error);
+    }
+  }
 }
