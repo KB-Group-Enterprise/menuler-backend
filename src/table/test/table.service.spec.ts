@@ -5,11 +5,11 @@ import { RestaurantService } from '../../restaurant/restaurant.service';
 import { restaurantStub } from '../../restaurant/test/stubs/restaurant.stub';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateQrcodeInput } from '../dto/CreateQrcodeInput';
-import { QrcodeService } from '../qrcode.service';
+import { TableService } from '../table.service';
 import { qrcodeStub } from '../stubs/qrcode.stub';
 
 describe('QrcodeService', () => {
-  let qrcodeService: QrcodeService;
+  let tableService: TableService;
   let restaurantService: RestaurantService;
   let restaurantId: string;
   const tableDetail: CreateQrcodeInput = {
@@ -25,10 +25,10 @@ describe('QrcodeService', () => {
   };
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [QrcodeService, PrismaService, RestaurantService],
+      providers: [TableService, PrismaService, RestaurantService],
     }).compile();
 
-    qrcodeService = module.get<QrcodeService>(QrcodeService);
+    tableService = module.get<TableService>(TableService);
     restaurantService = module.get(RestaurantService);
     try {
       const restaurantInput: CreateRestaurantInput = {
@@ -45,34 +45,32 @@ describe('QrcodeService', () => {
 
   afterEach(async () => {
     try {
-      const targetToDelete: Prisma.QrcodeTableNameRestaurantIdCompoundUniqueInput =
+      const targetToDelete: Prisma.TableTableNameRestaurantIdCompoundUniqueInput =
         {
           restaurantId: qrcodeStub().restaurantId,
           tableName: qrcodeStub().tableName,
         };
-      await qrcodeService.deleteQrcodeByTableNameAndRestaurantId(
-        targetToDelete,
-      );
+      await tableService.deleteTableByTableNameAndRestaurantId(targetToDelete);
       await restaurantService.deleteRestaurant(restaurantStub().restaurantName);
     } catch (error) {}
   });
 
   it('should be defined', () => {
-    expect(qrcodeService).toBeDefined();
+    expect(tableService).toBeDefined();
   });
 
   describe('generateQrcode', () => {
     it('should generate qrcode', async () => {
-      const { isSuccess, qrcode } = await qrcodeService.generateQrcode(
+      const { isSuccess, table } = await tableService.generateQrcode(
         tableDetail,
       );
       expect(isSuccess).toBe(true);
-      expect(qrcode).toEqual(qrcodeResult);
+      expect(table).toEqual(qrcodeResult);
     });
     it('should throw conflict qrcode exception', async () => {
       try {
-        await qrcodeService.generateQrcode(tableDetail);
-        await qrcodeService.generateQrcode(tableDetail);
+        await tableService.generateQrcode(tableDetail);
+        await tableService.generateQrcode(tableDetail);
       } catch (error) {
         expect(error.status).toBe(409);
       }
@@ -81,11 +79,11 @@ describe('QrcodeService', () => {
 
   describe('findQrcodeByTableToken', () => {
     it('should return qrcode', async () => {
-      const { isSuccess, qrcode } = await qrcodeService.generateQrcode(
+      const { isSuccess, table } = await tableService.generateQrcode(
         tableDetail,
       );
-      const qrcodeByTableToken = await qrcodeService.findQrcodeByTableToken(
-        qrcode.tableToken,
+      const qrcodeByTableToken = await tableService.findTableByTableToken(
+        table.tableToken,
       );
       expect(isSuccess).toBe(true);
       expect(qrcodeByTableToken).toEqual(qrcodeResult);
@@ -93,24 +91,24 @@ describe('QrcodeService', () => {
 
     it('should throw not found exception', async () => {
       try {
-        await qrcodeService.findQrcodeByTableToken('something');
+        await tableService.findTableByTableToken('something');
       } catch (error) {
         expect(error.status).toBe(404);
       }
     });
 
     it('should return conflict qrcode', async () => {
-      await qrcodeService.generateQrcode(tableDetail);
-      const { isSuccess, qrcode } = await qrcodeService.generateQrcode(
+      await tableService.generateQrcode(tableDetail);
+      const { isSuccess, table } = await tableService.generateQrcode(
         tableDetail,
       );
       expect(isSuccess).toBe(false);
-      expect(qrcode).toEqual(qrcodeResult);
+      expect(table).toEqual(qrcodeResult);
     });
 
     it('should throw not found restaurant', async () => {
       try {
-        const temp = await qrcodeService.generateQrcode({
+        const temp = await tableService.generateQrcode({
           restaurantId: 'wrongrestaurantId',
           qrcodeSize: tableDetail.qrcodeSize,
           tableName: 'dwpdlwpal',

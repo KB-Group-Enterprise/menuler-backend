@@ -6,8 +6,8 @@ import { RestaurantController } from './restaurant/restaurant.controller';
 import { RestaurantService } from './restaurant/restaurant.service';
 import { RestaurantModule } from './restaurant/restaurant.module';
 import { PrismaModule } from './prisma/prisma.module';
-import { QrcodeService } from './qrcode/qrcode.service';
-import { QrcodeModule } from './qrcode/qrcode.module';
+import { TableService } from './table/table.service';
+import { TableModule } from './table/table.module';
 import { AdminService } from './admin/admin.service';
 import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
@@ -20,7 +20,7 @@ import { MenuModule } from './menu/menu.module';
     }),
     RestaurantModule,
     PrismaModule,
-    QrcodeModule,
+    TableModule,
     AdminModule,
     AuthModule,
     MenuModule,
@@ -30,7 +30,7 @@ import { MenuModule } from './menu/menu.module';
     AppService,
     PrismaService,
     RestaurantService,
-    QrcodeService,
+    TableService,
     AdminService,
   ],
 })

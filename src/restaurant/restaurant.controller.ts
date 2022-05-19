@@ -12,9 +12,7 @@ import { Admin } from '@prisma/client';
 import { CurrentUser } from 'src/auth/current-user';
 import { JwtAdminAuthGuard } from 'src/auth/guards/jwt.guard';
 import { CreateRestaurantInput } from './dto/restaurant/CreateRestaurantInput';
-import { CreateTableRequest } from './dto/qrcode/CreateTableRequest';
 import { RestaurantService } from './restaurant.service';
-import { UpdateMenuInput } from 'src/menu/dto/UpdateMenu.dto';
 import { UpdateRestaurantDto } from './dto/restaurant/UpdateRestaurant.dto';
 
 @Controller('restaurant')
@@ -34,22 +32,6 @@ export class RestaurantController {
     return {
       data: { restaurant },
       message: 'create restaurant success',
-    };
-  }
-
-  @Post('/table')
-  @UseGuards(JwtAdminAuthGuard)
-  async createTable(
-    @Body() { tables }: CreateTableRequest,
-    @CurrentUser() admin: Admin,
-  ) {
-    const { qrcodeFailList, qrcodeSuccessList } =
-      await this.restaurantService.insertTable(admin, tables);
-    return {
-      data: {
-        success: qrcodeSuccessList,
-        conflict: qrcodeFailList,
-      },
     };
   }
 

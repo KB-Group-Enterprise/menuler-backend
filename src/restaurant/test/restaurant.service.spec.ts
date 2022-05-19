@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { Prisma, Restaurant } from '@prisma/client';
-import { QrcodeService } from '../../qrcode/qrcode.service';
+import { TableService } from '../../table/table.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RestaurantService } from '../restaurant.service';
 import { restaurantStub } from './stubs/restaurant.stub';
@@ -20,7 +20,7 @@ describe('RestaurantService', () => {
     //   createRestaurant: jest.fn().mockImplementation(() => restaurantStub()),
     // };
     const moduleRef = await Test.createTestingModule({
-      providers: [RestaurantService, PrismaService, QrcodeService],
+      providers: [RestaurantService, PrismaService, TableService],
       // providers: [
       //   {
       //     provide: PrismaService,

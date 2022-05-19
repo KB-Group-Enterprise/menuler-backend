@@ -34,14 +34,14 @@ model Restaurant {
   registerOn            DateTime      @default(now())
   isActivate            Boolean  @default(true)
   status                restaurant_status  @default(OPEN)
-  qrcode                Qrcode[]
+  qrcode                Table[]
   admin                 Admin[] @relation("AdminRestaurant")
   updatedAt             DateTime  @default(now())
   updatedBy             Admin?  @relation("AdminUpdate")
 
 }
 
-model Qrcode {
+model Table {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
   tableToken            String   @unique
   tableName             String  
