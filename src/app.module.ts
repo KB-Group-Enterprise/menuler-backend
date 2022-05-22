@@ -13,6 +13,8 @@ import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { MenuModule } from './menu/menu.module';
+import { OrderModule } from './order/order.module';
+import { OrderService } from './order/order.service';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -24,6 +26,7 @@ import { MenuModule } from './menu/menu.module';
     AdminModule,
     AuthModule,
     MenuModule,
+    OrderModule,
   ],
   controllers: [AppController, RestaurantController],
   providers: [
@@ -32,6 +35,7 @@ import { MenuModule } from './menu/menu.module';
     RestaurantService,
     TableService,
     AdminService,
+    OrderService,
   ],
 })
 export class AppModule {}

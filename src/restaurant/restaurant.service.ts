@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Admin, Prisma } from '@prisma/client';
-import { TableService } from '../table/table.service';
 import { AdminService } from '../admin/admin.service';
 import { PrismaException } from '../exception/Prisma.exception';
 
@@ -13,7 +12,6 @@ import { PrismaException } from '../exception/Prisma.exception';
 export class RestaurantService {
   constructor(
     private prisma: PrismaService,
-    private readonly tableService: TableService,
     private readonly adminService: AdminService,
   ) {}
 

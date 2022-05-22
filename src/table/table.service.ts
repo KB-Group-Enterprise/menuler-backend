@@ -123,6 +123,7 @@ export class TableService {
   async findTableById(tableId: string) {
     const table = await this.prisma.table.findUnique({
       where: { id: tableId },
+      include: { order: true },
     });
     return table;
   }
