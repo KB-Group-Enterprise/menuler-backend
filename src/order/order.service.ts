@@ -1,9 +1,16 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { order_status, Prisma } from '@prisma/client';
+import {
+  Order,
+  order_client_state,
+  order_status,
+  Prisma,
+} from '@prisma/client';
+import { PrismaException } from 'src/exception/Prisma.exception';
 import { MenuService } from 'src/menu/menu.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { TableService } from 'src/table/table.service';
 import { CreateOrderDto } from './dto/CreateOrder.dto';
+import { UpdateOrderDto } from './dto/UpdateOrder.dto';
 import { FoodOrder, food_order_status } from './types/FoodOrder';
 
 @Injectable()
@@ -46,9 +53,45 @@ export class OrderService {
   }
 
   async insertOrder(orderDetails: Prisma.OrderCreateInput) {
-    const order = this.prisma.order.create({
+    const order = await this.prisma.order.create({
       data: { ...orderDetails },
     });
     return order;
+  }
+
+  async findOrderByOrderId(orderId: string) {
+    return await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+  }
+
+  async updateOrderById(orderId: string, orderDetails: UpdateOrderDto) {
+    // TODO updateOrder
+    const order = await this.findOrderByOrderId(orderId);
+  }
+
+  async clientConfirmOrderCase(orderId: string, orderDetails: UpdateOrderDto) {
+    try {
+      const updatedOrder = await this.prisma.order.update({
+        data: {
+          clientState: order_client_state.COMFIRMED,
+          updatedAt: new Date(),
+          tableId: orderDetails.tableId,
+        },
+        where: { id: orderId },
+      });
+    } catch (error) {
+      throw new PrismaException(error);
+    }
+  }
+
+  async deleteOrderByOrderId(orderId: string) {
+    try {
+      await this.prisma.order.delete({
+        where: { id: orderId },
+      });
+    } catch (error) {
+      throw new PrismaException(error);
+    }
   }
 }

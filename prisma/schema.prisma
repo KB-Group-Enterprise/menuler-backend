@@ -92,6 +92,7 @@ enum order_status {
   BILLING
   PAID
   NOT_CHECKOUT
+  CANCEL
 }
 
 enum order_client_state {
@@ -99,6 +100,8 @@ enum order_client_state {
   COMFIRMED
   REJECT
   ORDER_MORE_FOOD
+  CANCEL_SOME_FOOD
+  ORDER_AND_CANCEL_FOOD
 }
 
 enum order_overall_food_status {
@@ -109,5 +112,5 @@ enum order_overall_food_status {
 enum food_order_status {
   COOKING
   SERVED
-  CANCLE
+  CANCEL
 }
