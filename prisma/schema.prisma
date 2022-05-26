@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "darwin", "windows", "debian-openssl-1.1.x"]
 }
 
 datasource db {
@@ -12,7 +13,7 @@ datasource db {
 
 model Menu {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
-  foodName              String
+  foodName              String   
   category              String
   description           String?   
   imageUrl              String
@@ -20,18 +21,62 @@ model Menu {
   isAvailable           menu_status   @default(NORMAL)
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @default(now())
-  restaurant            Restaurant  @relation(fields: [restaurantId], references: [id])
+  restaurant            Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   restaurantId          String  @db.ObjectId
+  @@unique([restaurantId,foodName])
+  @@unique([restaurantId, id])
 }
 
 model Restaurant {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
   restaurantName        String   @unique
-  menu                  Menu[]
+  menu                  Menu[]   
   location              String
   registerOn            DateTime      @default(now())
   isActivate            Boolean  @default(true)
   status                restaurant_status  @default(OPEN)
+  qrcode                Table[]
+  admin                 Admin[] @relation("AdminRestaurant")
+  updatedAt             DateTime  @default(now())
+  updatedBy             Admin?  @relation("AdminUpdate")
+  order                 Order[]   
+}
+
+model Table {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  tableToken            String   @unique
+  tableName             String  
+  qrcodeImageUrl        String
+  isActivate            Boolean  @default(true)
+  restaurant            Restaurant   @relation(fields: [restaurantId], references: [id])
+  restaurantId          String   @db.ObjectId
+  order                 Order[]       
+  @@unique([tableName,restaurantId])
+  @@unique([id, restaurantId])
+}
+
+model Admin {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  email                 String   @unique
+  password              String
+  restaurant            Restaurant?   @relation("AdminRestaurant" ,fields: [restaurantId], references: [id])
+  restaurantId          String?   @db.ObjectId
+  updateRestaurant      Restaurant?   @relation("AdminUpdate", fields: [updateRestaurantId], references: [id])
+  updateRestaurantId    String?   @db.ObjectId
+}
+
+model Order {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  foodOrderList         Json[] 
+  createAt              DateTime  @default(now())
+  updatedAt             DateTime  @default(now())
+  status                order_status  @default(NOT_CHECKOUT)
+  clientState           order_client_state @default(PENDING)
+  overallFoodStatus     order_overall_food_status @default(PENDING)
+  table                 Table     @relation(fields: [tableId], references: [id])
+  tableId               String    @db.ObjectId
+  restaurant            Restaurant    @relation(fields: [restaurantId], references: [id])
+  restaurantId          String    @db.ObjectId
 }
 
 enum menu_status {
@@ -42,4 +87,31 @@ enum menu_status {
 enum restaurant_status {
   OPEN
   CLOSE
+}
+
+enum order_status {
+  BILLING
+  PAID
+  NOT_CHECKOUT
+  CANCEL
+}
+
+enum order_client_state {
+  PENDING
+  COMFIRMED
+  REJECT
+  ORDER_MORE_FOOD
+  CANCEL_SOME_FOOD
+  ORDER_AND_CANCEL_FOOD
+}
+
+enum order_overall_food_status {
+  ALL_SERVED
+  PENDING
+}
+
+enum food_order_status {
+  COOKING
+  SERVED
+  CANCEL
 }
