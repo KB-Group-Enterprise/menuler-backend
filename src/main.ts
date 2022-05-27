@@ -14,6 +14,11 @@ async function bootstrap() {
       whitelist: true,
     }),
   );
+  app.enableCors({
+    origin: '*',
+    credentials: true,
+    methods: 'GET,PUT,POST,DELETE',
+  });
   app.setGlobalPrefix('/api');
   await app.listen(process.env.PORT || 3000);
 }
