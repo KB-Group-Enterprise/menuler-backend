@@ -14,7 +14,7 @@ export class ResponseTransform<T> implements NestInterceptor<T, Response<T>> {
       map((data) => ({
         isSuccess: true,
         statusCode: 200,
-        data,
+        ...data
       })),
     );
   }
