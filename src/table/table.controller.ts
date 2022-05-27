@@ -28,6 +28,8 @@ export class TableController {
     const table = await this.tableService.findTableByTableToken(tableToken);
     res.json({
       data: table,
+      isSuccess: true,
+      stauts: 200,
     });
   }
 
