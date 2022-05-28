@@ -65,6 +65,10 @@ export class AdminService {
         select: {
           id: true,
           restaurantName: true,
+          isActivate: true,
+          status: true,
+          registerOn: true,
+          location: true,
         }
       }
     }})
