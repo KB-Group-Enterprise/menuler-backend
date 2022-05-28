@@ -28,7 +28,7 @@ export class TableService {
         isSuccess: false,
         table: existQrcode,
       };
-    }
+    };
     const tableToken = this.generateTableToken();
     const newQrcode = await this.prisma.table.create({
       data: {
