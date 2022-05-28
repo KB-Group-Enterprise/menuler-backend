@@ -5,6 +5,7 @@ import { RegisterAdminInput } from './dto/RegisterAdmin.dto';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { Admin } from '@prisma/client';
 @Injectable()
 export class AuthService {
   constructor(
@@ -52,6 +53,11 @@ export class AuthService {
       },
     );
   }
+
+  async getProfile(admin: Admin) {
+    return this.adminService.adminProfile(admin.id);
+  }
+
 
   // TODO refreshToken
 }

@@ -27,6 +27,15 @@ export class AuthController {
     return { data: { accessToken }, message: 'login success' };
   }
 
+  @Get('/admin/profile')
+  @UseGuards(JwtAdminAuthGuard)
+  async adminProfile(@CurrentUser() admin: Admin) {
+    const data = this.authService.getProfile(admin);
+    return {
+      data
+    }
+  }
+
   @Get('/secret')
   @UseGuards(JwtAdminAuthGuard)
   async getSecret(@CurrentUser() admin: Admin) {

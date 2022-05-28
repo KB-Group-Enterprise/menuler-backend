@@ -58,4 +58,15 @@ export class AdminService {
       throw new PrismaException(error);
     }
   }
+  async adminProfile(adminId: string) {
+    return this.prisma.admin.findUnique({ where: { id: adminId }, select: {
+      email: true,
+      restaurant: {
+        select: {
+          id: true,
+          restaurantName: true,
+        }
+      }
+    }})
+  }
 }
