@@ -30,7 +30,7 @@ export class AuthController {
   @Get('/admin/profile')
   @UseGuards(JwtAdminAuthGuard)
   async adminProfile(@CurrentUser() admin: Admin) {
-    const data = this.authService.getProfile(admin);
+    const data = await this.authService.getProfile(admin);
     return {
       data
     }

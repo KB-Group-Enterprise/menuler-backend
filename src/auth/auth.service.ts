@@ -55,7 +55,8 @@ export class AuthService {
   }
 
   async getProfile(admin: Admin) {
-    return this.adminService.adminProfile(admin.id);
+    const result = await this.adminService.adminProfile(admin.id);
+    return result;
   }
 
 
