@@ -14,7 +14,7 @@ jobs:
       - name: Create .env file
         run: |
           echo PORT=${{ secrets.ENV_DEV_PORT }} >> .env
-          echo JWT_ACCESS_TOKEN=${{ secrets.ENV_DEV_JWT_ACCESS }} >> .env
+          echo JWT_ACCESS_SECRET=${{ secrets.ENV_DEV_JWT_ACCESS }} >> .env
           echo DATABASE_URL=${{ secrets.ENV_DEV_DATABASE_URL }} >> .env
           echo FRONTEND_URL=${{ secrets.ENV_DEV_FRONTEND_URL }} >> .env
       - name: Send docker-compose to host
