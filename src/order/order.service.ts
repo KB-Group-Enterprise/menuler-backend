@@ -20,7 +20,12 @@ export class OrderService {
     private readonly menuService: MenuService,
     private readonly tableService: TableService,
   ) {}
-  async createOrder({ foodOrderList, restaurantId, tableId }: CreateOrderDto) {
+  async createOrder({
+    foodOrderList,
+    restaurantId,
+    tableId,
+    clientGroupId,
+  }: CreateOrderDto) {
     const menuOrderList: FoodOrder[] = [];
     for (const foodOrder of foodOrderList) {
       const menu = await this.menuService.findMenuById(foodOrder.menuId);
@@ -44,10 +49,22 @@ export class OrderService {
       throw new BadRequestException(`previous order still not check out`);
 
     const orderMenuList = menuOrderList as unknown as Prisma.JsonArray;
+    const clientGroup = await this.prisma.clientGroup.findUnique({
+      where: {
+        id: clientGroupId,
+      },
+    });
+    if (!clientGroup)
+      throw new BadRequestException(`clientGroupId: ${clientGroupId} invalid`);
     const createdOrder = await this.insertOrder({
       restaurant: { connect: { id: restaurantId } },
       table: { connect: { id: table.id } },
       foodOrderList: orderMenuList,
+      clientGroup: {
+        connect: {
+          id: clientGroupId,
+        },
+      },
     });
     return createdOrder;
   }

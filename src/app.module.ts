@@ -15,6 +15,7 @@ import { ConfigModule } from '@nestjs/config';
 import { MenuModule } from './menu/menu.module';
 import { OrderModule } from './order/order.module';
 import { OrderService } from './order/order.service';
+import { TableGateWay } from './table/table.gateway';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -36,6 +37,7 @@ import { OrderService } from './order/order.service';
     TableService,
     AdminService,
     OrderService,
+    TableGateWay,
   ],
 })
 export class AppModule {}

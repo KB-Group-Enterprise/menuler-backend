@@ -51,6 +51,7 @@ model Table {
   restaurant            Restaurant   @relation(fields: [restaurantId], references: [id])
   restaurantId          String   @db.ObjectId
   order                 Order[]       
+  clientGroup           ClientGroup[]
   @@unique([tableName,restaurantId])
   @@unique([id, restaurantId])
 }
@@ -62,7 +63,7 @@ model Admin {
   restaurant            Restaurant?   @relation("AdminRestaurant" ,fields: [restaurantId], references: [id])
   restaurantId          String?   @db.ObjectId
   updateRestaurant      Restaurant?   @relation("AdminUpdate", fields: [updateRestaurantId], references: [id])
-  updateRestaurantId    String?   @db.ObjectId
+  updateRestaurantId    String?   @unique @db.ObjectId
 }
 
 model Order {
@@ -77,6 +78,16 @@ model Order {
   tableId               String    @db.ObjectId
   restaurant            Restaurant    @relation(fields: [restaurantId], references: [id])
   restaurantId          String    @db.ObjectId
+  clientGroup           ClientGroup  @relation(fields: [clientGroupId], references: [id])
+  clientGroupId         String    @unique @db.ObjectId
+}
+
+model ClientGroup {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  table                 Table    @relation(fields: [tableId], references: [id])
+  tableId               String   @db.ObjectId
+  order                 Order?   
+  createdAt             DateTime @default(now())
 }
 
 enum menu_status {

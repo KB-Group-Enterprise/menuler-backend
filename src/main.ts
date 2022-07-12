@@ -9,8 +9,8 @@ async function bootstrap() {
   });
   app.useGlobalInterceptors(new ResponseTransform());
   app.enableCors({
-    allowedHeaders:"*",
-    origin: "*"
+    allowedHeaders: '*',
+    origin: '*',
   });
   app.useGlobalPipes(
     new ValidationPipe({

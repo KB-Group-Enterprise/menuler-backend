@@ -16,4 +16,8 @@ export class CreateOrderDto {
   @IsNotEmpty()
   @IsString()
   tableId: string;
+
+  @IsNotEmpty()
+  @IsString()
+  clientGroupId: string;
 }

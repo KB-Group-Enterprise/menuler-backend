@@ -8,6 +8,6 @@ export class AppController {
 
   @Get()
   getHello(@Res() res: Response) {
-    res.status(200).send(this.appService.getHello())
+    res.status(200).send(this.appService.getHello());
   }
 }
