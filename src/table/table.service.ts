@@ -1,4 +1,9 @@
-import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { v4 as uuidv4 } from 'uuid';
 import { Admin, Prisma, Table } from '@prisma/client';
@@ -28,7 +33,7 @@ export class TableService {
         isSuccess: false,
         table: existQrcode,
       };
-    };
+    }
     const tableToken = this.generateTableToken();
     const newQrcode = await this.prisma.table.create({
       data: {
@@ -158,5 +163,16 @@ export class TableService {
     } catch (error) {
       throw new PrismaException(error);
     }
+  }
+
+  async updateTableById(tableId: string, details: Prisma.TableUpdateInput) {
+    return await this.prisma.table.update({
+      where: {
+        id: tableId,
+      },
+      data: {
+        ...details,
+      },
+    });
   }
 }

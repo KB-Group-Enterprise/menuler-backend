@@ -1,8 +1,5 @@
-import { IsNotEmpty } from 'class-validator';
-
 export class JoinOrLeaveTable {
-  @IsNotEmpty()
-  tableToken: string;
-  @IsNotEmpty()
+  tableId: string;
   username: string;
+  clientGroupId?: string;
 }

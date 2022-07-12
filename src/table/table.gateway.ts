@@ -10,26 +10,57 @@ import {
   WebSocketServer,
   WsResponse,
 } from '@nestjs/websockets';
+import { Table } from '@prisma/client';
 import { Socket, Server } from 'socket.io';
+import { ClientGroupService } from 'src/client-group/client-group.service';
+import { CustomWsResponse } from './dto/CustomWsResponse';
 import { JoinOrLeaveTable } from './dto/JoinTable.dto';
+import { EVENT_TYPE } from './enums/event-type.enum';
 import { TableService } from './table.service';
 
 @WebSocketGateway(3505, { namespace: 'table' })
 export class TableGateWay
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
+  NOTI_TABLE = 'noti-table';
   logger = new Logger('TableGateway');
   @WebSocketServer()
   server: Server;
 
-  constructor(private tableService: TableService) {}
+  constructor(
+    private tableService: TableService,
+    private clientGroupService: ClientGroupService,
+  ) {}
 
-  afterInit(server: any) {
+  afterInit(server: Server) {
     this.logger.log('TableGateWay Init');
   }
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
+    const rooms = client.rooms.values();
+    client.on('disconnecting', async (reason) => {
+      this.logger.log(reason);
+      for (const room of rooms) {
+        if (room !== client.id) {
+          const sockets = await this.getCurrentSocketInRoom(room);
+          const allUser = sockets
+            .map((user) => {
+              if (user.id !== client.id)
+                return {
+                  username: user.data.username,
+                  clientId: user.id,
+                };
+            })
+            .filter((user) => (user ? true : false));
+          this.server.to(room).emit(this.NOTI_TABLE, {
+            usernameInRoom: allUser,
+            message: `${client.data.username} left`,
+            type: EVENT_TYPE.LEFT,
+          });
+        }
+      }
+    });
   }
 
   handleDisconnect(client: Socket) {
@@ -40,33 +71,63 @@ export class TableGateWay
   async handleJoinTable(
     @MessageBody() event: JoinOrLeaveTable,
     @ConnectedSocket() client: Socket,
-  ): Promise<WsResponse<any>> {
+  ): Promise<WsResponse<CustomWsResponse>> {
     try {
-      const table = await this.tableService.findTableByTableToken(
-        event.tableToken,
-      );
+      const table = await this.tableService.findTableById(event.tableId);
       if (!table) throw new Error('No table');
       client.data.username = event.username;
+      client.data.joinedAt = Date.now();
       client.join(table.id);
-      const sockets = await this.server.in(table.id).fetchSockets();
-      const allUser = sockets.map(async (user) => {
-        return user.data.username;
-      });
 
-      this.server.to(table.id).emit('noti-table', { usersInRoom: allUser });
+      const sockets = await this.getCurrentSocketInRoom(table.id);
+      const allUser = sockets.map((user) => ({
+        clientId: user.id,
+        username: user.data.username,
+      }));
+
+      this.server.to(table.id).emit('noti-table', {
+        usernameInRoom: allUser,
+        message: `${event.username} joined`,
+        type: EVENT_TYPE.JOIN,
+      });
 
       return {
         event: 'joinedTable',
         data: {
-          // allUser:
           clientId: client.id,
           message: `${event.username} joined`,
+          type: EVENT_TYPE.JOIN,
         },
       };
     } catch (error) {
       this.logger.error(error);
-      return { event: 'error', data: error.message };
+      return {
+        event: 'error',
+        data: {
+          message: error.message,
+          type: EVENT_TYPE.ERROR,
+        },
+      };
     }
+  }
+
+  private async createClientGroup(table: Table, client: Socket) {
+    return await this.clientGroupService.createClientGroup({
+      table: {
+        connect: { id: table.id },
+      },
+      client: [client.data],
+    });
+  }
+
+  private async updateClientGroup(clientGroupId: string, client: any[]) {
+    return await this.clientGroupService.updateClientGroupById(clientGroupId, {
+      client,
+    });
+  }
+
+  private async getCurrentSocketInRoom(room: string) {
+    return await this.server.in(room).fetchSockets();
   }
   // handleLeaveTable(@MessageBody() event: JoinOrLeaveTable);
 }

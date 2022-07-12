@@ -16,6 +16,7 @@ import { MenuModule } from './menu/menu.module';
 import { OrderModule } from './order/order.module';
 import { OrderService } from './order/order.service';
 import { TableGateWay } from './table/table.gateway';
+import { ClientGroupModule } from './client-group/client-group.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -28,6 +29,7 @@ import { TableGateWay } from './table/table.gateway';
     AuthModule,
     MenuModule,
     OrderModule,
+    ClientGroupModule,
   ],
   controllers: [AppController, RestaurantController],
   providers: [

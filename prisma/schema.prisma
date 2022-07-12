@@ -88,6 +88,7 @@ model ClientGroup {
   tableId               String   @db.ObjectId
   order                 Order?   
   createdAt             DateTime @default(now())
+  client                Json[]
 }
 
 enum menu_status {
