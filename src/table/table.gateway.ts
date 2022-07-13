@@ -55,7 +55,7 @@ export class TableGateWay
         this.server.to(room).emit(this.NOTI_TABLE, {
           usernameInRoom: allUser,
           message: `${client.data.username} left`,
-          type: EVENT_TYPE.LEFT,
+          type: EVENT_TYPE.NOTI,
         });
       }
     });
@@ -94,7 +94,7 @@ export class TableGateWay
         data: {
           clientId: client.id,
           message: `${event.username} joined`,
-          type: EVENT_TYPE.JOIN,
+          type: EVENT_TYPE.NOTI,
         },
       };
     } catch (error) {
@@ -131,7 +131,7 @@ export class TableGateWay
       this.server.to(event.tableId).emit('noti-table', {
         usernameInRoom: allUser,
         message: `${event.username} left`,
-        type: EVENT_TYPE.LEFT,
+        type: EVENT_TYPE.NOTI,
       });
 
       return {
@@ -139,7 +139,7 @@ export class TableGateWay
         data: {
           clientId: client.id,
           message: `${event.username} left`,
-          type: EVENT_TYPE.JOIN,
+          type: EVENT_TYPE.LEFT,
         },
       };
     } catch (error) {
