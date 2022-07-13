@@ -38,27 +38,25 @@ export class TableGateWay
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
-    const rooms = client.rooms.values();
     client.on('disconnecting', async (reason) => {
+      const rooms = this.getRoomsExceptSelf(client);
       this.logger.log(reason);
       for (const room of rooms) {
-        if (room !== client.id) {
-          const sockets = await this.getCurrentSocketInRoom(room);
-          const allUser = sockets
-            .map((user) => {
-              if (user.id !== client.id)
-                return {
-                  username: user.data.username,
-                  clientId: user.id,
-                };
-            })
-            .filter((user) => (user ? true : false));
-          this.server.to(room).emit(this.NOTI_TABLE, {
-            usernameInRoom: allUser,
-            message: `${client.data.username} left`,
-            type: EVENT_TYPE.LEFT,
-          });
-        }
+        const sockets = await this.getCurrentSocketInRoom(room);
+        const allUser = sockets
+          .map((user) => {
+            if (user.id !== client.id)
+              return {
+                username: user.data.username,
+                clientId: user.id,
+              };
+          })
+          .filter((user) => (user ? true : false));
+        this.server.to(room).emit(this.NOTI_TABLE, {
+          usernameInRoom: allUser,
+          message: `${client.data.username} left`,
+          type: EVENT_TYPE.LEFT,
+        });
       }
     });
   }
@@ -111,6 +109,50 @@ export class TableGateWay
     }
   }
 
+  @SubscribeMessage('leaveTable')
+  async handleLeaveTable(
+    @MessageBody() event: JoinOrLeaveTable,
+    @ConnectedSocket() client: Socket,
+  ): Promise<WsResponse<CustomWsResponse>> {
+    try {
+      client.data.username = event.username;
+      client.data.joinedAt = Date.now();
+      const rooms = this.getRoomsExceptSelf(client);
+      const tableId = rooms.find((room) => room === event.tableId);
+      if (!tableId) throw new Error('your tableId is invalid');
+      client.leave(event.tableId);
+
+      const sockets = await this.getCurrentSocketInRoom(event.tableId);
+      const allUser = sockets.map((user) => ({
+        clientId: user.id,
+        username: user.data.username,
+      }));
+
+      this.server.to(event.tableId).emit('noti-table', {
+        usernameInRoom: allUser,
+        message: `${event.username} left`,
+        type: EVENT_TYPE.LEFT,
+      });
+
+      return {
+        event: 'leftTable',
+        data: {
+          clientId: client.id,
+          message: `${event.username} left`,
+          type: EVENT_TYPE.JOIN,
+        },
+      };
+    } catch (error) {
+      return {
+        event: 'error',
+        data: {
+          message: error.message,
+          type: EVENT_TYPE.ERROR,
+        },
+      };
+    }
+  }
+
   private async createClientGroup(table: Table, client: Socket) {
     return await this.clientGroupService.createClientGroup({
       table: {
@@ -129,5 +171,9 @@ export class TableGateWay
   private async getCurrentSocketInRoom(room: string) {
     return await this.server.in(room).fetchSockets();
   }
-  // handleLeaveTable(@MessageBody() event: JoinOrLeaveTable);
+
+  private getRoomsExceptSelf(client: Socket) {
+    const rooms = Array.from(client.rooms).filter((room) => room !== client.id);
+    return rooms;
+  }
 }
