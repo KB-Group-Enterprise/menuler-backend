@@ -115,8 +115,6 @@ export class TableGateWay
     @ConnectedSocket() client: Socket,
   ): Promise<WsResponse<CustomWsResponse>> {
     try {
-      client.data.username = event.username;
-      client.data.joinedAt = Date.now();
       const rooms = this.getRoomsExceptSelf(client);
       const tableId = rooms.find((room) => room === event.tableId);
       if (!tableId) throw new Error('your tableId is invalid');
