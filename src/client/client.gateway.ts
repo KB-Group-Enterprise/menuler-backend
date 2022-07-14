@@ -13,16 +13,17 @@ import {
 import { Table } from '@prisma/client';
 import { Socket, Server } from 'socket.io';
 import { ClientGroupService } from 'src/client-group/client-group.service';
-import { CustomWsResponse } from './dto/CustomWsResponse';
-import { JoinOrLeaveTable } from './dto/JoinTable.dto';
-import { EVENT_TYPE } from './enums/event-type.enum';
-import { TableService } from './table.service';
-
-@WebSocketGateway(3505, { namespace: 'table' })
-export class TableGateWay
+import { CustomWsResponse } from '../table/dto/CustomWsResponse';
+import { JoinOrLeaveTable } from '../table/dto/JoinTable.dto';
+import { EVENT_TYPE } from '../utils/enums/event-type.enum';
+import { TableService } from '../table/table.service';
+import { SelectFood } from 'src/order/dto/SelectFood.dto';
+import short = require('short-uuid');
+@WebSocketGateway(3505, { namespace: 'client' })
+export class ClientGateWay
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
-  NOTI_TABLE = 'noti-table';
+  private readonly NOTI_TABLE = 'noti-table';
   logger = new Logger('TableGateway');
   @WebSocketServer()
   server: Server;
@@ -86,7 +87,7 @@ export class TableGateWay
       this.server.to(table.id).emit('noti-table', {
         usernameInRoom: allUser,
         message: `${event.username} joined`,
-        type: EVENT_TYPE.JOIN,
+        type: EVENT_TYPE.NOTI,
       });
 
       return {
@@ -94,7 +95,7 @@ export class TableGateWay
         data: {
           clientId: client.id,
           message: `${event.username} joined`,
-          type: EVENT_TYPE.NOTI,
+          type: EVENT_TYPE.JOIN,
         },
       };
     } catch (error) {
@@ -141,6 +142,50 @@ export class TableGateWay
         },
       };
     } catch (error) {
+      return {
+        event: 'error',
+        data: {
+          message: error.message,
+          type: EVENT_TYPE.ERROR,
+        },
+      };
+    }
+  }
+
+  @SubscribeMessage('selectFood')
+  async handleSelectFood(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() event: SelectFood,
+  ): Promise<WsResponse<CustomWsResponse>> {
+    try {
+      if (!event.tableId) throw Error('tableId invalid');
+      event.selectedFood.clientId = client.id;
+      event.selectedFood.foodOrderId = short().generate();
+      client.data.selectedFoodList = [
+        ...(client.data.selectedFoodList?.length
+          ? client.data.selectedFoodList
+          : []),
+        event.selectedFood,
+      ];
+      const sockets = await this.getCurrentSocketInRoom(event.tableId);
+      const allSelectedFoodList = sockets
+        .map((user) => user.data.selectedFoodList)
+        .filter((foodList) => foodList !== undefined || null)
+        .reduce((a: string[], b: string[]) => a.concat(b), []);
+      this.server.to(event.tableId).emit('noti-table', {
+        selectedFoodList: allSelectedFoodList,
+        message: `${event.username} selected ${event.selectedFood.foodName}`,
+        type: EVENT_TYPE.NOTI,
+      });
+      return {
+        event: 'selectedFood',
+        data: {
+          message: `You selected menu id: ${event.selectedFood.foodName}`,
+          type: EVENT_TYPE.SELECTED,
+        },
+      };
+    } catch (error) {
+      this.logger.error(error);
       return {
         event: 'error',
         data: {

@@ -15,8 +15,8 @@ import { ConfigModule } from '@nestjs/config';
 import { MenuModule } from './menu/menu.module';
 import { OrderModule } from './order/order.module';
 import { OrderService } from './order/order.service';
-import { TableGateWay } from './table/table.gateway';
 import { ClientGroupModule } from './client-group/client-group.module';
+import { ClientModule } from './client/client.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -30,6 +30,7 @@ import { ClientGroupModule } from './client-group/client-group.module';
     MenuModule,
     OrderModule,
     ClientGroupModule,
+    ClientModule,
   ],
   controllers: [AppController, RestaurantController],
   providers: [
@@ -39,7 +40,6 @@ import { ClientGroupModule } from './client-group/client-group.module';
     TableService,
     AdminService,
     OrderService,
-    TableGateWay,
   ],
 })
 export class AppModule {}

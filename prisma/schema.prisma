@@ -19,6 +19,7 @@ model Menu {
   imageUrl              String
   price                 Int
   isAvailable           menu_status   @default(NORMAL)
+  options               Json[]
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @default(now())
   restaurant            Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
@@ -112,9 +113,10 @@ enum order_client_state {
   PENDING
   COMFIRMED
   REJECT
-  ORDER_MORE_FOOD
-  CANCEL_SOME_FOOD
-  ORDER_AND_CANCEL_FOOD
+  UPDATE_FOOD
+  // ORDER_MORE_FOOD
+  // CANCEL_SOME_FOOD
+  // ORDER_AND_CANCEL_FOOD
 }
 
 enum order_overall_food_status {

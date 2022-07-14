@@ -8,10 +8,6 @@ async function bootstrap() {
     logger: ['log', 'error', 'debug'],
   });
   app.useGlobalInterceptors(new ResponseTransform());
-  app.enableCors({
-    allowedHeaders: '*',
-    origin: '*',
-  });
   app.useGlobalPipes(
     new ValidationPipe({
       forbidNonWhitelisted: true,
