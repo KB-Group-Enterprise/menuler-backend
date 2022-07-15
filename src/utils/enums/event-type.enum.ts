@@ -4,4 +4,5 @@ export enum EVENT_TYPE {
   ERROR = 'error',
   NOTI = 'notification',
   SELECTED = 'selected_food',
+  DESELETED = 'deselected_food',
 }

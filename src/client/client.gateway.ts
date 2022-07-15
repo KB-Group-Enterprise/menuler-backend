@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, UseFilters } from '@nestjs/common';
 import {
   WebSocketGateway,
   SubscribeMessage,
@@ -13,12 +13,16 @@ import {
 import { Table } from '@prisma/client';
 import { Socket, Server } from 'socket.io';
 import { ClientGroupService } from 'src/client-group/client-group.service';
-import { CustomWsResponse } from '../table/dto/CustomWsResponse';
-import { JoinOrLeaveTable } from '../table/dto/JoinTable.dto';
+import { CustomWsResponse } from '../client/dto/CustomWsResponse';
+import { JoinOrLeaveTable } from './dto/JoinTable.dto';
 import { EVENT_TYPE } from '../utils/enums/event-type.enum';
 import { TableService } from '../table/table.service';
-import { SelectFood } from 'src/order/dto/SelectFood.dto';
+import { SelectFood } from 'src/client/dto/SelectFood.dto';
 import short = require('short-uuid');
+import { DeselectFood } from './dto/DeselectFood.dto';
+import { WsErrorHandler } from 'src/filters/WsErrorHandler.filter';
+import { FoodOrderInput } from 'src/order/dto/FoodOrderInput.dto';
+@UseFilters(WsErrorHandler)
 @WebSocketGateway(3505, { namespace: 'client' })
 export class ClientGateWay
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -167,11 +171,7 @@ export class ClientGateWay
           : []),
         event.selectedFood,
       ];
-      const sockets = await this.getCurrentSocketInRoom(event.tableId);
-      const allSelectedFoodList = sockets
-        .map((user) => user.data.selectedFoodList)
-        .filter((foodList) => foodList !== undefined || null)
-        .reduce((a: string[], b: string[]) => a.concat(b), []);
+      const allSelectedFoodList = await this.getSelectedFoodList(event.tableId);
       this.server.to(event.tableId).emit('noti-table', {
         selectedFoodList: allSelectedFoodList,
         message: `${event.username} selected ${event.selectedFood.foodName}`,
@@ -182,6 +182,57 @@ export class ClientGateWay
         data: {
           message: `You selected menu id: ${event.selectedFood.foodName}`,
           type: EVENT_TYPE.SELECTED,
+        },
+      };
+    } catch (error) {
+      this.logger.error(error);
+      return {
+        event: 'error',
+        data: {
+          message: error.message,
+          type: EVENT_TYPE.ERROR,
+        },
+      };
+    }
+  }
+
+  @SubscribeMessage('deselectFood')
+  async handleDeselectFood(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() event: DeselectFood,
+  ): Promise<WsResponse<CustomWsResponse>> {
+    try {
+      const tableId = Array.from(client.rooms).find(
+        (room) => room === event.tableId,
+      );
+      if (!tableId) throw new Error('your tableId is invalid');
+
+      const allSelectedFoodList = await this.getSelectedFoodList(event.tableId);
+      const deselectedFood = allSelectedFoodList.splice(
+        allSelectedFoodList.findIndex(
+          (food) => food.foodOrderId === event.foodOrderId,
+        ),
+        1,
+      )[0];
+
+      this.server.to(tableId).emit('noti-table', {
+        selectedFoodList: allSelectedFoodList,
+        message: `${event.username} deselected ${deselectedFood.foodName}`,
+        type: EVENT_TYPE.NOTI,
+      });
+
+      const clientSelectedFood = client.data
+        .selectedFoodList as FoodOrderInput[];
+      clientSelectedFood.splice(
+        clientSelectedFood.findIndex(
+          (food) => food.foodOrderId === event.foodOrderId,
+        ),
+      );
+      return {
+        event: 'deselectedFood',
+        data: {
+          message: `You deselect ${deselectedFood.foodName}`,
+          type: EVENT_TYPE.DESELETED,
         },
       };
     } catch (error) {
@@ -218,5 +269,14 @@ export class ClientGateWay
   private getRoomsExceptSelf(client: Socket) {
     const rooms = Array.from(client.rooms).filter((room) => room !== client.id);
     return rooms;
+  }
+
+  private async getSelectedFoodList(tableId: string) {
+    const sockets = await this.getCurrentSocketInRoom(tableId);
+    const selectedFoodList = sockets
+      .map((user) => user.data.selectedFoodList)
+      .filter((foodList) => foodList !== undefined || null)
+      .reduce((a: string[], b: string[]) => a.concat(b), []);
+    return selectedFoodList as FoodOrderInput[];
   }
 }
