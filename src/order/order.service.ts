@@ -82,9 +82,16 @@ export class OrderService {
     });
   }
 
-  async updateOrderById(orderId: string, orderDetails: UpdateOrderDto) {
+  async updateOrderById(
+    orderId: string,
+    orderDetails: Prisma.OrderUpdateInput,
+  ) {
     // TODO updateOrder
-    const order = await this.findOrderByOrderId(orderId);
+    // const order = await this.findOrderByOrderId(orderId);
+    return await this.prisma.order.update({
+      data: { ...orderDetails },
+      where: { id: orderId },
+    });
   }
 
   async clientConfirmOrderCase(orderId: string, orderDetails: UpdateOrderDto) {

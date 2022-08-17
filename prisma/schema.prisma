@@ -90,6 +90,13 @@ model ClientGroup {
   order                 Order?   
   createdAt             DateTime @default(now())
   client                Json[]
+  selectedFoodList      Json[]
+  status                client_group_status @default(IN_PROGRESS)
+}
+
+enum client_group_status {
+  IN_PROGRESS
+  COMPLETED
 }
 
 enum menu_status {

@@ -10,5 +10,6 @@ import { ClientGroupModule } from 'src/client-group/client-group.module';
   imports: [PrismaModule, TableModule, MenuModule, ClientGroupModule],
   controllers: [OrderController],
   providers: [OrderService],
+  exports: [OrderService],
 })
 export class OrderModule {}

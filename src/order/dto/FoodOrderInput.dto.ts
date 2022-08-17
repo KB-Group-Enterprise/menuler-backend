@@ -46,5 +46,5 @@ export class FoodOrderInput {
   selectedOptions: Options[];
 
   foodOrderId: string;
-  clientId: string;
+  userId: string;
 }

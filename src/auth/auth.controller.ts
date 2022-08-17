@@ -32,8 +32,8 @@ export class AuthController {
   async adminProfile(@CurrentUser() admin: Admin) {
     const data = await this.authService.getProfile(admin);
     return {
-      data
-    }
+      data,
+    };
   }
 
   @Get('/secret')
