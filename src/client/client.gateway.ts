@@ -1,4 +1,10 @@
-import { BadRequestException, Logger, UseFilters } from '@nestjs/common';
+import {
+  BadRequestException,
+  Logger,
+  UseFilters,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import {
   WebSocketGateway,
   SubscribeMessage,
@@ -31,6 +37,7 @@ import { FoodOrderInput } from 'src/order/dto/FoodOrderInput.dto';
 import shortUUID = require('short-uuid');
 import { OrderService } from 'src/order/order.service';
 import { Client } from './types/client';
+@UsePipes(new ValidationPipe({ transform: true }))
 @UseFilters(WsErrorHandler)
 @WebSocketGateway(3505, { namespace: 'client', cors: { origin: '*' } })
 export class ClientGateWay
@@ -92,6 +99,8 @@ export class ClientGateWay
         event.tableToken,
       );
       if (!table) throw new Error('No table');
+      if (!table.isActivate)
+        throw new BadRequestException('this table is not avaiable');
       client.data.userId = shortUUID().generate();
       client.data.username = event.username;
       client.data.joinedAt = Date.now();
