@@ -53,12 +53,13 @@ export class TableService {
   }
 
   async findTableByTableToken(tableToken: string) {
-    const table = await this.prisma.table.findFirst({
+    const table = await this.prisma.table.findUnique({
       where: { tableToken },
+      include: { order: true, clientGroup: true },
     });
-    if (!table) throw new NotFoundException(`table not found`);
     return table;
   }
+
   private generateQrcodeImageUrl(
     tableToken: string,
     { height, width }: QrcodeSize,

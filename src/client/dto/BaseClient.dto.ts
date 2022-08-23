@@ -7,5 +7,5 @@ export class BaseClient {
 
   @IsNotEmpty()
   @IsString()
-  tableId: string;
+  tableToken: string;
 }

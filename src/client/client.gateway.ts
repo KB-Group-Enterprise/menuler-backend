@@ -88,14 +88,18 @@ export class ClientGateWay
     @ConnectedSocket() client: Socket,
   ): Promise<WsResponse<CustomWsResponse>> {
     try {
-      const table = await this.tableService.findTableById(event.tableId);
+      const table = await this.tableService.findTableByTableToken(
+        event.tableToken,
+      );
       if (!table) throw new Error('No table');
       client.data.userId = shortUUID().generate();
       client.data.username = event.username;
       client.data.joinedAt = Date.now();
-      client.join(table.id);
-      const clientGroup = await this.getCurrentClientGroupOrNew(table.id);
-      await this.notiToTable(event.tableId, clientGroup, {
+      client.join(table.tableToken);
+      const clientGroup = await this.getCurrentClientGroupOrNew(
+        table.tableToken,
+      );
+      await this.notiToTable(event.tableToken, clientGroup, {
         message: `${event.username} joined`,
         type: EVENT_TYPE.NOTI,
       });
@@ -127,14 +131,14 @@ export class ClientGateWay
   ): Promise<WsResponse<CustomWsResponse>> {
     try {
       const rooms = this.getRoomsExceptSelf(client);
-      const tableId = rooms.find((room) => room === event.tableId);
-      if (!tableId) throw new Error('your tableId is invalid');
-      client.leave(event.tableId);
-      const clientGroup = await this.getCurrentClientGroupOrNew(tableId);
-      const sockets = await this.getCurrentSocketInRoom(tableId);
+      const tableToken = rooms.find((room) => room === event.tableToken);
+      if (!tableToken) throw new Error('your tableToken is invalid');
+      client.leave(event.tableToken);
+      const clientGroup = await this.getCurrentClientGroupOrNew(tableToken);
+      const sockets = await this.getCurrentSocketInRoom(tableToken);
       await this.updateClientGroup(clientGroup.id, sockets);
 
-      await this.notiToTable(event.tableId, clientGroup, {
+      await this.notiToTable(event.tableToken, clientGroup, {
         message: `${event.username} left`,
         type: EVENT_TYPE.NOTI,
       });
@@ -164,9 +168,11 @@ export class ClientGateWay
     @MessageBody() event: SelectFood,
   ): Promise<WsResponse<CustomWsResponse>> {
     try {
-      const table = await this.tableService.findTableById(event.tableId);
-      if (!table) throw Error('tableId invalid');
-      let clientGroup = await this.getCurrentClientGroupOrNew(table.id);
+      const table = await this.tableService.findTableByTableToken(
+        event.tableToken,
+      );
+      if (!table) throw Error('tableToken invalid');
+      let clientGroup = await this.getCurrentClientGroupOrNew(table.tableToken);
       event.selectedFood.userId = client.data.userId;
       event.selectedFood.foodOrderId = short().generate();
       client.data.selectedFoodList = [
@@ -182,7 +188,7 @@ export class ClientGateWay
           selectedFoodList: { push: clientSelectedFood },
         },
       );
-      await this.notiToTable(event.tableId, clientGroup, {
+      await this.notiToTable(event.tableToken, clientGroup, {
         message: `${event.username} selected ${event.selectedFood.foodName}`,
         type: EVENT_TYPE.NOTI,
       });
@@ -211,32 +217,23 @@ export class ClientGateWay
     @MessageBody() event: DeselectFood,
   ): Promise<WsResponse<CustomWsResponse>> {
     try {
-      const tableId = Array.from(client.rooms).find(
-        (room) => room === event.tableId,
+      const tableToken = Array.from(client.rooms).find(
+        (room) => room === event.tableToken,
       );
-      if (!tableId) throw new Error('your tableId is invalid');
-      const clientGroup = await this.getCurrentClientGroupOrNew(tableId);
-      const allSelectedFoodList = await this.getSelectedFoodList(event.tableId);
-      const deselectedFood = allSelectedFoodList.splice(
-        allSelectedFoodList.findIndex(
-          (food) => food.foodOrderId === event.foodOrderId,
-        ),
-        1,
-      )[0];
+      if (!tableToken) throw new Error('your tableToken is invalid');
+      const clientGroup = await this.getCurrentClientGroupOrNew(tableToken);
+      const allSelectedFoodList = clientGroup.selectedFoodList;
+      const deselectedFood = await this.deselectFood(
+        event.foodOrderId,
+        clientGroup,
+      );
 
-      await this.notiToTable(tableId, clientGroup, {
+      await this.notiToTable(tableToken, clientGroup, {
         selectedFoodList: allSelectedFoodList,
         message: `${event.username} deselected ${deselectedFood.foodName}`,
         type: EVENT_TYPE.NOTI,
       });
 
-      const clientSelectedFood = client.data
-        .selectedFoodList as FoodOrderInput[];
-      clientSelectedFood.splice(
-        clientSelectedFood.findIndex(
-          (food) => food.foodOrderId === event.foodOrderId,
-        ),
-      );
       return {
         event: 'deselectedFood',
         data: {
@@ -278,17 +275,17 @@ export class ClientGateWay
   }
 
   private async notiToTable(
-    tableId: string,
+    tableToken: string,
     clientGroup: ClientGroup,
     detail: any,
   ) {
-    const sockets = await this.getCurrentSocketInRoom(tableId);
+    const sockets = await this.getCurrentSocketInRoom(tableToken);
     const allUser = sockets.map((user) => ({
       userId: user.data.userId,
       username: user.data.username,
     }));
     const allSelectedFoodList = clientGroup.selectedFoodList;
-    this.server.to(tableId).emit('noti-table', {
+    this.server.to(tableToken).emit('noti-table', {
       usernameInRoom: allUser,
       selectedFoodList: allSelectedFoodList,
       clientGroupId: clientGroup.id,
@@ -296,13 +293,13 @@ export class ClientGateWay
     });
   }
 
-  private async getCurrentClientGroupOrNew(tableId: string) {
-    if (!tableId) return;
-    const table = await this.tableService.findTableById(tableId);
+  private async getCurrentClientGroupOrNew(tableToken: string) {
+    if (!tableToken) return;
+    const table = await this.tableService.findTableByTableToken(tableToken);
     if (!table) throw new BadRequestException(`table does not exist`);
 
     let clientGroup: ClientGroup;
-    const sockets = await this.getCurrentSocketInRoom(table.id);
+    const sockets = await this.getCurrentSocketInRoom(table.tableToken);
     const isOrderStillNotCheckout = this.isOrderStillNotCheckOut(table.order);
     const clientGroupInProgress = this.findClientGroupInProgress(
       table.clientGroup,
@@ -344,12 +341,25 @@ export class ClientGateWay
     return rooms;
   }
 
-  private async getSelectedFoodList(tableId: string) {
-    const sockets = await this.getCurrentSocketInRoom(tableId);
-    const selectedFoodList = sockets
-      .map((user) => user.data.selectedFoodList)
-      .filter((foodList) => foodList !== undefined || null)
-      .reduce((a: string[], b: string[]) => a.concat(b), []);
-    return selectedFoodList as FoodOrderInput[];
+  private async deselectFood(foodOrderId: string, clientGroup: ClientGroup) {
+    const foodOrderList =
+      clientGroup.selectedFoodList as unknown as FoodOrderInput[];
+    const deselectedFood = foodOrderList.splice(
+      foodOrderList.findIndex((food) => food.foodOrderId === foodOrderId),
+      1,
+    )[0];
+    await this.clientGroupService.updateClientGroupById(clientGroup.id, {
+      selectedFoodList: foodOrderList as any,
+    });
+    return deselectedFood;
   }
+
+  // private async getSelectedFoodList(tableToken: string) {
+  //   const sockets = await this.getCurrentSocketInRoom(tableToken);
+  //   const selectedFoodList = sockets
+  //     .map((user) => user.data.selectedFoodList)
+  //     .filter((foodList) => foodList !== undefined || null)
+  //     .reduce((a: string[], b: string[]) => a.concat(b), []);
+  //   return selectedFoodList as FoodOrderInput[];
+  // }
 }
