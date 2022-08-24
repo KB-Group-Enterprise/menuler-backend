@@ -13,7 +13,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       forbidUnknownValues: true,
       skipMissingProperties: false,
-      whitelist: true,
+      // whitelist: true,
     }),
   );
   app.enableCors({

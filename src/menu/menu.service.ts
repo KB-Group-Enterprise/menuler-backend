@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { Admin, Menu, Prisma } from '@prisma/client';
 import { PrismaException } from 'src/exception/Prisma.exception';
+import { FoodOrderInput } from 'src/order/dto/FoodOrderInput.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateMenuList } from './dto/CreateMenuList.dto';
 
@@ -23,7 +24,7 @@ export class MenuService {
     const menuSuccessList: Menu[] = [];
     const menuConflictList: { foodName: string }[] = [];
     for (const menu of menuList) {
-      const { category, foodName, price, description, isAvailable } = menu;
+      const { category, foodName, price, description, menuStatus } = menu;
       const isMenuExist = await this.checkExistMenu(
         foodName,
         admin.restaurantId,
@@ -35,7 +36,7 @@ export class MenuService {
             foodName,
             price,
             description,
-            isAvailable,
+            menuStatus,
             imageUrl,
             restaurantId: admin.restaurantId,
           },
@@ -104,5 +105,25 @@ export class MenuService {
     } catch (error) {
       throw new PrismaException(error);
     }
+  }
+
+  async validateMenuList(foodOrders: FoodOrderInput[]) {
+    const menuPromiseArr = foodOrders.map((foodOrder) =>
+      this.findMenuById(foodOrder.menuId),
+    );
+    try {
+      return await Promise.all([...menuPromiseArr]);
+    } catch (error) {
+      throw new BadRequestException('validate menu list failed');
+    }
+  }
+
+  async validateMenu(foodOrder: FoodOrderInput) {
+    const validatedMenu = await this.findMenuById(foodOrder.menuId);
+    if (!validatedMenu)
+      throw new BadRequestException('this menu does not exist');
+    if (validatedMenu.menuStatus === 'CANCEL')
+      throw new BadRequestException('this menu has been cancel');
+    return true;
   }
 }

@@ -37,8 +37,12 @@ import { FoodOrderInput } from 'src/order/dto/FoodOrderInput.dto';
 import shortUUID = require('short-uuid');
 import { OrderService } from 'src/order/order.service';
 import { Client } from './types/client';
-@UsePipes(new ValidationPipe({ transform: true }))
+import { MenuService } from 'src/menu/menu.service';
+import { ClientCreateOrderDto } from 'src/order/dto/ClientCreateOrder.dto';
+import { ClientUpdateOrderDto } from 'src/order/dto/ClientUpdateOrder.dto';
+import { food_order_status } from 'src/order/types/FoodOrder';
 @UseFilters(WsErrorHandler)
+@UsePipes(new ValidationPipe({ transform: true }))
 @WebSocketGateway(3505, { namespace: 'client', cors: { origin: '*' } })
 export class ClientGateWay
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -52,6 +56,7 @@ export class ClientGateWay
     private tableService: TableService,
     private clientGroupService: ClientGroupService,
     private orderService: OrderService,
+    private menuService: MenuService,
   ) {}
 
   afterInit(server: Server) {
@@ -149,7 +154,6 @@ export class ClientGateWay
 
       await this.notiToTable(event.tableToken, clientGroup, {
         message: `${event.username} left`,
-        type: EVENT_TYPE.NOTI,
       });
 
       return {
@@ -181,8 +185,10 @@ export class ClientGateWay
         event.tableToken,
       );
       if (!table) throw Error('tableToken invalid');
+      await this.menuService.validateMenu(event.selectedFood);
       let clientGroup = await this.getCurrentClientGroupOrNew(table.tableToken);
       event.selectedFood.userId = client.data.userId;
+      event.selectedFood.username = client.data.username;
       event.selectedFood.foodOrderId = short().generate();
       client.data.selectedFoodList = [
         ...(client.data.selectedFoodList?.length
@@ -199,7 +205,6 @@ export class ClientGateWay
       );
       await this.notiToTable(event.tableToken, clientGroup, {
         message: `${event.username} selected ${event.selectedFood.foodName}`,
-        type: EVENT_TYPE.NOTI,
       });
       return {
         event: 'selectedFood',
@@ -240,7 +245,6 @@ export class ClientGateWay
       await this.notiToTable(tableToken, clientGroup, {
         selectedFoodList: allSelectedFoodList,
         message: `${event.username} deselected ${deselectedFood.foodName}`,
-        type: EVENT_TYPE.NOTI,
       });
 
       return {
@@ -260,6 +264,106 @@ export class ClientGateWay
         },
       };
     }
+  }
+
+  @SubscribeMessage('handleCreateOrder')
+  async handlerCreateOrder(
+    @MessageBody() event: ClientCreateOrderDto,
+    @ConnectedSocket() client: Socket,
+  ): Promise<WsResponse<CustomWsResponse>> {
+    try {
+      await this.createOrder(event, client);
+      return {
+        data: {
+          message: `Create order success`,
+          type: EVENT_TYPE.ORDER,
+        },
+        event: 'createdOrder',
+      };
+    } catch (error) {
+      console.log(error);
+      this.logger.error(error);
+      return {
+        event: 'error',
+        data: {
+          message: error.message,
+          type: EVENT_TYPE.ERROR,
+        },
+      };
+    }
+  }
+
+  @SubscribeMessage('handleUpdateOrder')
+  async handleUpdateOrder(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() event: ClientUpdateOrderDto,
+  ): Promise<WsResponse<CustomWsResponse>> {
+    try {
+      await this.updateOrder(event, client);
+      return {
+        data: {
+          message: `Update order success`,
+          type: EVENT_TYPE.ORDER,
+        },
+        event: 'updatedOrder',
+      };
+    } catch (error) {
+      console.log(error);
+      this.logger.error(error);
+      return {
+        event: 'error',
+        data: {
+          message: error.message,
+          type: EVENT_TYPE.ERROR,
+        },
+      };
+    }
+  }
+
+  async updateOrder(updateData: ClientUpdateOrderDto, client: Socket) {
+    await this.menuService.validateMenuList(updateData.additionalFoodOrderList);
+    const additionalFoodOrderList = updateData.additionalFoodOrderList as any[];
+    additionalFoodOrderList.forEach(
+      (foodOrder) => (foodOrder.status = food_order_status.ORDERED),
+    );
+    // order.foodOrderList.push(...additionalFoodOrderList);
+    const updatedOrder = await this.orderService.updateOrderById(
+      updateData.orderId,
+      {
+        table: { connect: { tableToken: updateData.tableToken } },
+        foodOrderList: { push: additionalFoodOrderList },
+        updatedAt: new Date(),
+      },
+    );
+
+    const updatedClientGroup =
+      await this.clientGroupService.updateClientGroupById(
+        updateData.clientGroupId,
+        { selectedFoodList: [] },
+      );
+    await this.notiToTable(updateData.tableToken, updatedClientGroup, {
+      message: `${client.data.username} create order`,
+    });
+    return updatedOrder;
+  }
+
+  async createOrder(createData: ClientCreateOrderDto, client: Socket) {
+    await this.menuService.validateMenuList(createData.foodOrderList);
+    const order = await this.orderService.createOrder({
+      clientGroupId: createData.clientGroupId,
+      foodOrderList: createData.foodOrderList,
+      restaurantId: createData.restaurantId,
+      tableToken: createData.tableToken,
+    });
+    if (!order) throw new BadRequestException('create order failed');
+    const updatedClientGroup =
+      await this.clientGroupService.updateClientGroupById(
+        createData.clientGroupId,
+        { selectedFoodList: [] },
+      );
+    await this.notiToTable(createData.tableToken, updatedClientGroup, {
+      message: `${client.data.username} create order`,
+    });
   }
 
   private async createClientGroup(table: Table, clients: any[]) {
@@ -286,18 +390,25 @@ export class ClientGateWay
   private async notiToTable(
     tableToken: string,
     clientGroup: ClientGroup,
-    detail: any,
+    detail?: any,
   ) {
     const sockets = await this.getCurrentSocketInRoom(tableToken);
+    const table = await this.tableService.findTableByTableToken(tableToken);
     const allUser = sockets.map((user) => ({
       userId: user.data.userId,
       username: user.data.username,
     }));
     const allSelectedFoodList = clientGroup.selectedFoodList;
+    const order = await this.orderService.findOrderByClientGroupId(
+      clientGroup.id,
+    );
     this.server.to(tableToken).emit('noti-table', {
+      restaurantId: table.restaurantId,
       usernameInRoom: allUser,
       selectedFoodList: allSelectedFoodList,
       clientGroupId: clientGroup.id,
+      order: order ? order : undefined,
+      type: EVENT_TYPE.NOTI,
       ...detail,
     });
   }

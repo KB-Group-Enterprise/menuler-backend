@@ -1,14 +1,6 @@
-import { menu_status } from '@prisma/client';
 import { Type } from 'class-transformer';
-import {
-  IsArray,
-  IsEnum,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
-  ValidateNested,
-} from 'class-validator';
+import { IsArray, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
+import { food_order_status } from '../types/FoodOrder';
 import { Options } from './Options.dto';
 export class FoodOrderInput {
   @IsNotEmpty()
@@ -19,27 +11,28 @@ export class FoodOrderInput {
   @IsString()
   foodName: string;
 
-  @IsNotEmpty()
-  @IsString()
-  category: string;
+  // @IsNotEmpty()
+  // @IsString()
+  // category: string;
 
-  @IsOptional()
-  @IsNotEmpty()
-  @IsString()
-  description: string;
+  // @IsOptional()
+  // @IsNotEmpty()
+  // @IsString()
+  // description: string;
+
+  // @IsNotEmpty()
+  // @IsString()
+  // imageUrl: string;
+
+  // @IsNotEmpty()
+  // @IsNumber()
+  // priceEach: number;
+
+  // @IsNotEmpty()
+  // @IsEnum(menu_status)
+  // menuStatus: menu_status;
 
   @IsNotEmpty()
-  @IsString()
-  imageUrl: string;
-
-  @IsNotEmpty()
-  @IsNumber()
-  priceEach: number;
-
-  @IsNotEmpty()
-  @IsEnum(menu_status)
-  isAvailable: menu_status;
-
   @IsArray()
   @Type(() => Options)
   @ValidateNested({ each: true })
@@ -47,4 +40,6 @@ export class FoodOrderInput {
 
   foodOrderId: string;
   userId: string;
+  username: string;
+  status: food_order_status;
 }

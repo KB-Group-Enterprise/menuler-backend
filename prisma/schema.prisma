@@ -18,7 +18,7 @@ model Menu {
   description           String?   
   imageUrl              String
   price                 Int
-  isAvailable           menu_status   @default(NORMAL)
+  menuStatus           menu_status   @default(NORMAL)
   options               Json[]
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @default(now())
@@ -129,10 +129,4 @@ enum order_client_state {
 enum order_overall_food_status {
   ALL_SERVED
   PENDING
-}
-
-enum food_order_status {
-  COOKING
-  SERVED
-  CANCEL
 }

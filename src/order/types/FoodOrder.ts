@@ -4,5 +4,10 @@ export enum food_order_status {
   CANCEL = 'CANCEL',
   COOKING = 'COOKING',
   PENDING = 'PENDING',
+  ORDERED = 'ORDERED',
 }
-export type FoodOrder = Menu & { status: food_order_status };
+export type FoodOrder = Menu & {
+  status: food_order_status;
+  userId: string;
+  username: string;
+};

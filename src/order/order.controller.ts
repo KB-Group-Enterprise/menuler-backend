@@ -1,29 +1,20 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Delete, Get, Param, UseGuards } from '@nestjs/common';
 import { JwtAdminAuthGuard } from 'src/auth/guards/jwt.guard';
-import { CreateOrderDto } from './dto/CreateOrder.dto';
 import { OrderService } from './order.service';
 
 @Controller('order')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
-  @Post('/create')
-  async createOrder(@Body() orderDetails: CreateOrderDto) {
-    // TODO get clientId
-    const order = await this.orderService.createOrder(orderDetails);
-    return {
-      data: order,
-      message: 'create order success',
-    };
-  }
+  // @Post('/create')
+  // async createOrder(@Body() orderDetails: CreateOrderDto) {
+  //   // TODO get clientId
+  //   const order = await this.orderService.createOrder(orderDetails);
+  //   return {
+  //     data: order,
+  //     message: 'create order success',
+  //   };
+  // }
 
   @Get('/:orderId')
   async getOrder(@Param('orderId') orderId: string) {

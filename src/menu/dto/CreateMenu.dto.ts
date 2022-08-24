@@ -25,5 +25,5 @@ export class CreateMenuDto {
 
   @IsOptional()
   @IsEnum(menu_status)
-  isAvailable?: menu_status;
+  menuStatus?: menu_status;
 }

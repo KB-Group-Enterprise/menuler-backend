@@ -2,6 +2,7 @@ import {
   ArgumentsHost,
   Catch,
   HttpException,
+  Logger,
   WsExceptionFilter,
 } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
@@ -10,12 +11,14 @@ import { EVENT_TYPE } from 'src/utils/enums/event-type.enum';
 
 @Catch(WsException, HttpException)
 export class WsErrorHandler implements WsExceptionFilter {
+  logger: Logger = new Logger('WebSocket');
   public catch(exception: HttpException, host: ArgumentsHost) {
     const client = host.switchToWs().getClient();
     this.handleError(client, exception);
   }
 
   public handleError(client: Socket, exception: HttpException | WsException) {
+    this.logger.error(exception);
     if (exception instanceof HttpException) {
       client.emit('error', {
         ...(<HttpException>exception.getResponse()),
