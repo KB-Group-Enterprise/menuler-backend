@@ -3,22 +3,16 @@ import { Admin } from '@prisma/client';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './current-user';
 import { CredentialInput } from './dto/Credential.dto';
-import { RegisterAdminInput } from './dto/RegisterAdmin.dto';
-import { JwtAdminAuthGuard } from './guards/jwt.guard';
+import { JwtAdminAuthGuard } from './guards/jwt-admin.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('/admin/register')
-  async registerAdmin(@Body() data: RegisterAdminInput) {
-    const { accessToken } = await this.authService.registerAdmin(data);
-    return {
-      data: {
-        accessToken,
-      },
-      message: 'register success',
-    };
+  @Post('/restaurant/login')
+  async loginRestaurant(@Body() credential: CredentialInput) {
+    const { accessToken } = await this.authService.loginRestaurant(credential);
+    return { data: { accessToken }, message: 'login success' };
   }
 
   @Post('/admin/login')

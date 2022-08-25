@@ -5,7 +5,7 @@ import { Strategy, ExtractJwt } from 'passport-jwt';
 import { AdminService } from '../../admin/admin.service';
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy, 'jwt-admin') {
+export class JwtAdminStrategy extends PassportStrategy(Strategy, 'jwt-admin') {
   constructor(
     private readonly adminService: AdminService,
     private readonly configService: ConfigService,

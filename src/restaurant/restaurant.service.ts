@@ -7,33 +7,46 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Admin, Prisma } from '@prisma/client';
 import { AdminService } from '../admin/admin.service';
 import { PrismaException } from '../exception/Prisma.exception';
+import { S3 } from 'aws-sdk';
+import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class RestaurantService {
   constructor(
     private prisma: PrismaService,
-    private readonly adminService: AdminService,
+    private readonly authService: AuthService,
   ) {}
 
-  async createRestaurant(admin: Admin, details: Prisma.RestaurantCreateInput) {
-    const isExist = await this.prisma.restaurant.findUnique({
-      where: { restaurantName: details.restaurantName },
+  async findRestaurantByEmail(email: string) {
+    const restaurant = await this.prisma.restaurant.findUnique({
+      where: { email },
+    });
+    if (!restaurant) throw new BadRequestException('restaurant not found');
+    return restaurant;
+  }
+
+  async createRestaurant(
+    uploadedImages: S3.ManagedUpload.SendData[],
+    details: Prisma.RestaurantCreateInput,
+  ) {
+    const isExist = await this.prisma.restaurant.findFirst({
+      where: {
+        OR: { restaurantName: details.restaurantName, email: details.email },
+      },
     });
     if (isExist)
       throw new ConflictException(
         `Restaurant name ${details.restaurantName} is already exist`,
       );
-    if (admin.restaurantId) {
-      throw new BadRequestException('you alreay have restaurant');
-    }
+    details.password = await this.authService.hashPassword(details.password);
     const newRestaurant = await this.prisma.restaurant.create({
-      data: { ...details },
+      data: {
+        ...details,
+        restaurantImage: uploadedImages.map((image) => image.Location),
+      },
+      select: { password: false },
     });
 
-    await this.adminService.updateAdminWithRestaurantId(
-      admin.id,
-      newRestaurant.id,
-    );
     return newRestaurant;
   }
 
@@ -53,7 +66,7 @@ export class RestaurantService {
       where: {
         id: restaurantId,
       },
-      include: { menu: true, qrcode: true },
+      include: { menu: true, table: true },
     });
     return restaurant;
   }
@@ -63,29 +76,42 @@ export class RestaurantService {
   }
 
   async updateRestaurantInfo(
-    admin: Admin,
+    restaurantId: string,
     details: Prisma.RestaurantUpdateInput,
+    uploadedImages: S3.ManagedUpload.SendData[],
   ) {
+    if (details.restaurantName) {
+      const isExist = await this.findRestaurantByName(
+        <string>details.restaurantName,
+      );
+      if (isExist)
+        throw new BadRequestException('Your restaurant name already exist');
+    }
+    if (details.password) {
+      details.password = await this.authService.hashPassword(
+        <string>details.password,
+      );
+    }
     const updatedRestaurant = await this.prisma.restaurant.update({
       data: {
         ...details,
+        restaurantImage: uploadedImages.map((image) => image.Location),
         updatedAt: new Date(),
-        updatedBy: {
-          connect: {
-            id: admin.id,
-          },
-        },
       },
-      where: { id: admin.restaurantId },
+      where: { id: restaurantId },
     });
+    delete updatedRestaurant.password;
     return updatedRestaurant;
   }
 
-  async deleteRestaurantById(restaurantId: string, admin: Admin) {
-    try {
-      if (restaurantId !== admin.restaurantId)
-        throw new BadRequestException('you can only delete your restaurant');
+  async findRestaurantByName(restaurantName: string) {
+    return await this.prisma.restaurant.findUnique({
+      where: { restaurantName: restaurantName },
+    });
+  }
 
+  async deleteRestaurantById(restaurantId: string) {
+    try {
       await this.prisma.restaurant.delete({
         where: {
           id: restaurantId,

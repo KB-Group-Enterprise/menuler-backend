@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { Admin } from '@prisma/client';
 import { CurrentUser } from 'src/auth/current-user';
-import { JwtAdminAuthGuard } from 'src/auth/guards/jwt.guard';
+import { JwtAdminAuthGuard } from 'src/auth/guards/jwt-admin.guard';
 import { CreateMenuList } from 'src/menu/dto/CreateMenuList.dto';
 import { UpdateMenuInput } from './dto/UpdateMenu.dto';
 import { MenuService } from './menu.service';

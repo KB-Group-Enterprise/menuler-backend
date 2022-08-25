@@ -7,4 +7,12 @@ export class RegisterAdminInput {
   @IsNotEmpty()
   @IsString()
   password: string;
+
+  @IsNotEmpty()
+  @IsString()
+  firstname: string;
+
+  @IsNotEmpty()
+  @IsString()
+  lastname: string;
 }

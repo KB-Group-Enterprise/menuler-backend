@@ -8,4 +8,8 @@ export const restaurantStub = (): Restaurant => ({
   restaurantName: 'mockRestaurant',
   status: 'OPEN',
   updatedAt: new Date(),
+  bankAccounts: [],
+  email: 'restaurant@email.com',
+  password: '12345',
+  restaurantImage: [],
 });

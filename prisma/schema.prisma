@@ -31,15 +31,18 @@ model Menu {
 model Restaurant {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
   restaurantName        String   @unique
+  restaurantImage       String[]
+  email                 String   @unique
+  password              String
   menu                  Menu[]   
   location              String
   registerOn            DateTime      @default(now())
   isActivate            Boolean  @default(true)
   status                restaurant_status  @default(OPEN)
-  qrcode                Table[]
+  bankAccounts           Json[]
+  table                 Table[]
   admin                 Admin[] @relation("AdminRestaurant")
   updatedAt             DateTime  @default(now())
-  updatedBy             Admin?  @relation("AdminUpdate")
   order                 Order[]   
 }
 
@@ -59,12 +62,12 @@ model Table {
 
 model Admin {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  firstname             String
+  lastname              String
   email                 String   @unique
   password              String
-  restaurant            Restaurant?   @relation("AdminRestaurant" ,fields: [restaurantId], references: [id])
-  restaurantId          String?   @db.ObjectId
-  updateRestaurant      Restaurant?   @relation("AdminUpdate", fields: [updateRestaurantId], references: [id])
-  updateRestaurantId    String?   @unique @db.ObjectId
+  restaurant            Restaurant   @relation("AdminRestaurant" ,fields: [restaurantId], references: [id])
+  restaurantId          String   @db.ObjectId
 }
 
 model Order {

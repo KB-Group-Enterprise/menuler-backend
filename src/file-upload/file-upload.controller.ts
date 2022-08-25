@@ -18,11 +18,11 @@ export class FileUploadController {
   @UseInterceptors(FileInterceptor('file'))
   async upload(
     @UploadedFile(new FileValidatorPipe())
-    file: Express.Multer.File,
+    files: Express.Multer.File[],
     @Body() body: TestDto,
   ) {
     const uploaded = await this.uploadService.uploadS3(
-      file,
+      files,
       S3_FOLDER.RESTAURANT,
     );
     console.log(uploaded);

@@ -1,5 +1,5 @@
 import { Controller, Delete, Get, Param, UseGuards } from '@nestjs/common';
-import { JwtAdminAuthGuard } from 'src/auth/guards/jwt.guard';
+import { JwtAdminAuthGuard } from 'src/auth/guards/jwt-admin.guard';
 import { OrderService } from './order.service';
 
 @Controller('order')

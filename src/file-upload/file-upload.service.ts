@@ -17,23 +17,30 @@ export class FileUploadService {
   }
 
   async uploadS3(
-    file: Express.Multer.File,
+    files: Express.Multer.File[],
     folder: S3_FOLDER,
-  ): Promise<S3.ManagedUpload.SendData> {
-    const bucketS3 = 'akira-aws';
-    const params: S3.PutObjectRequest = {
-      Bucket: bucketS3,
-      Key: `${folder}/${folder}-${Date.now()}`,
-      Body: file.buffer,
-      //   ACL: 'public-read',
-    };
-    return new Promise((resolve, reject) => {
-      this.s3.upload(params, (err, data) => {
-        if (err) {
-          return reject(err.message);
-        }
-        resolve(data);
-      });
-    });
+  ): Promise<S3.ManagedUpload.SendData[]> {
+    if (!files?.length) return [];
+    const filesPromises = files.map(
+      (file): Promise<S3.ManagedUpload.SendData> => {
+        const bucketS3 = 'akira-aws';
+        const params: S3.PutObjectRequest = {
+          Bucket: bucketS3,
+          Key: `${folder}/${folder}-${Date.now()}`,
+          Body: file.buffer,
+          //   ACL: 'public-read',
+        };
+        return new Promise((resolve, reject) => {
+          this.s3.upload(params, (err, data: S3.ManagedUpload.SendData) => {
+            if (err) {
+              return reject(err.message);
+            }
+            resolve(data);
+          });
+        });
+      },
+    );
+    const uploadedFiles = await Promise.all([...filesPromises]);
+    return uploadedFiles;
   }
 }

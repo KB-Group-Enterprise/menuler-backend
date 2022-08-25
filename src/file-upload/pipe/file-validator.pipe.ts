@@ -29,15 +29,17 @@ export class FileValidatorPipe implements PipeTransform {
     return isFileExtensionPassed;
   }
 
-  transform(file: Express.Multer.File) {
-    console.log(this.option);
-    if (this.option.extension) {
-      this.addFileExtensionValidator(file);
+  transform(files: Express.Multer.File[]) {
+    if (!files || !files?.length) return;
+    for (const file of files) {
+      if (this.option.extension) {
+        this.addFileExtensionValidator(file);
+      }
+      if (this.option.maxFileSize) {
+        this.addFileSizeValidator(file);
+      }
     }
-    if (this.option.maxFileSize) {
-      this.addFileSizeValidator(file);
-    }
-    return file;
+    return files;
   }
 
   build() {

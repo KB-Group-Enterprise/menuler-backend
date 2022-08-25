@@ -4,13 +4,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { RegisterAdminInput } from '../auth/dto/RegisterAdmin.dto';
+import { RegisterAdminInput } from '../restaurant/dto/restaurant/RegisterAdmin.dto';
 import { PrismaException } from 'src/exception/Prisma.exception';
+import { Admin } from '@prisma/client';
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createAdmin(detail: RegisterAdminInput) {
+  async createAdmin(restaurantId: string, detail: RegisterAdminInput) {
     const isAdminExist = await this.prisma.admin.findUnique({
       where: { email: detail.email },
     });
@@ -18,10 +19,14 @@ export class AdminService {
       throw new ConflictException(`email ${detail.email} already exist`);
     const admin = await this.prisma.admin.create({
       data: {
+        firstname: detail.firstname,
+        lastname: detail.lastname,
         email: detail.email,
         password: detail.password,
+        restaurant: { connect: { id: restaurantId } },
       },
     });
+    delete admin.password;
     return admin;
   }
 
@@ -49,6 +54,16 @@ export class AdminService {
     return admin;
   }
 
+  async deleteAdminByAdminId(adminId: string) {
+    try {
+      await this.prisma.admin.delete({
+        where: { id: adminId },
+      });
+    } catch (error) {
+      throw new PrismaException(error);
+    }
+  }
+
   async deleteAdminByEmail(email: string) {
     try {
       await this.prisma.admin.delete({
@@ -73,6 +88,20 @@ export class AdminService {
             location: true,
           },
         },
+      },
+    });
+  }
+
+  async findAllAdminByRestaurantId(restaurantId: string) {
+    return await this.prisma.admin.findMany({
+      where: { restaurantId },
+      select: {
+        password: false,
+        email: true,
+        firstname: true,
+        id: true,
+        lastname: true,
+        restaurantId: true,
       },
     });
   }
