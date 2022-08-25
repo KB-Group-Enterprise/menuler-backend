@@ -59,18 +59,21 @@ export class AdminService {
     }
   }
   async adminProfile(adminId: string) {
-    return this.prisma.admin.findUnique({ where: { id: adminId }, select: {
-      email: true,
-      restaurant: {
-        select: {
-          id: true,
-          restaurantName: true,
-          isActivate: true,
-          status: true,
-          registerOn: true,
-          location: true,
-        }
-      }
-    }})
+    return this.prisma.admin.findUnique({
+      where: { id: adminId },
+      select: {
+        email: true,
+        restaurant: {
+          select: {
+            id: true,
+            restaurantName: true,
+            isActivate: true,
+            status: true,
+            registerOn: true,
+            location: true,
+          },
+        },
+      },
+    });
   }
 }

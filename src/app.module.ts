@@ -17,13 +17,13 @@ import { OrderModule } from './order/order.module';
 import { OrderService } from './order/order.service';
 import { ClientGroupModule } from './client-group/client-group.module';
 import { ClientModule } from './client/client.module';
+import { FileUploadModule } from './file-upload/file-upload.module';
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule.forRoot(),
+    FileUploadModule.forRoot(),
     RestaurantModule,
-    PrismaModule,
     TableModule,
     AdminModule,
     AuthModule,
