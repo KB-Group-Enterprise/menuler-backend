@@ -26,4 +26,12 @@ export class CreateRestaurantInput {
   @IsOptional()
   @IsEnum(restaurant_status)
   status: restaurant_status;
+
+  @IsNotEmpty()
+  @IsString()
+  firstname: string;
+
+  @IsNotEmpty()
+  @IsString()
+  lastname: string;
 }

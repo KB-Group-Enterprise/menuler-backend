@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -6,7 +7,6 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterAdminInput } from '../restaurant/dto/restaurant/RegisterAdmin.dto';
 import { PrismaException } from 'src/exception/Prisma.exception';
-import { Admin } from '@prisma/client';
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
@@ -17,6 +17,10 @@ export class AdminService {
     });
     if (isAdminExist)
       throw new ConflictException(`email ${detail.email} already exist`);
+    const staffRole = await this.prisma.role.findFirst({
+      where: { key: 'STAFF' },
+    });
+    if (!staffRole) throw new BadRequestException('Can not find role');
     const admin = await this.prisma.admin.create({
       data: {
         firstname: detail.firstname,
@@ -24,9 +28,9 @@ export class AdminService {
         email: detail.email,
         password: detail.password,
         restaurant: { connect: { id: restaurantId } },
+        role: { connect: { id: staffRole.id } },
       },
     });
-    delete admin.password;
     return admin;
   }
 
@@ -73,7 +77,7 @@ export class AdminService {
       throw new PrismaException(error);
     }
   }
-  async adminProfile(adminId: string) {
+  async getAdminProfile(adminId: string) {
     return this.prisma.admin.findUnique({
       where: { id: adminId },
       select: {

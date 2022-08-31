@@ -7,4 +7,5 @@ export const adminStub = (): Admin => ({
   restaurantId: '627100646e64e68312ef5833',
   firstname: 'foo',
   lastname: 'bar',
+  roleId: '1',
 });

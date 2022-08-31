@@ -10,19 +10,17 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { Admin } from '@prisma/client';
-import { CurrentUser } from 'src/auth/current-user';
 import { CreateRestaurantInput } from './dto/restaurant/CreateRestaurantInput';
 import { RestaurantService } from './restaurant.service';
 import { UpdateRestaurantDto } from './dto/restaurant/UpdateRestaurant.dto';
 import { RegisterAdminInput } from 'src/restaurant/dto/restaurant/RegisterAdmin.dto';
 import { AuthService } from 'src/auth/auth.service';
-import { JwtRestaurantAuthGuard } from 'src/auth/guards/jwt-restaurant.guard';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { FileValidatorPipe } from 'src/file-upload/pipe/file-validator.pipe';
 import { FileUploadService } from 'src/file-upload/file-upload.service';
 import { S3_FOLDER } from 'src/file-upload/enum/s3-folder.enum';
 import { AdminService } from 'src/admin/admin.service';
+import { JwtAdminAuthGuard } from 'src/auth/guards/jwt-admin.guard';
 
 @Controller('restaurant')
 export class RestaurantController {
@@ -34,7 +32,7 @@ export class RestaurantController {
   ) {}
 
   @Post('/:restaurantId/register/admin')
-  @UseGuards(JwtRestaurantAuthGuard)
+  @UseGuards(JwtAdminAuthGuard)
   async registerAdmin(
     @Body() data: RegisterAdminInput,
     @Param('restaurantId') restaurantId: string,
@@ -61,7 +59,7 @@ export class RestaurantController {
       restaurantDetails,
     );
     return {
-      data: { restaurant },
+      data: restaurant,
       message: 'create restaurant success',
     };
   }
@@ -89,7 +87,7 @@ export class RestaurantController {
   }
 
   @Put('/:restaurantId')
-  @UseGuards(JwtRestaurantAuthGuard)
+  @UseGuards(JwtAdminAuthGuard)
   @UseInterceptors(FilesInterceptor('restaurantImage'))
   async updateRestaurant(
     @UploadedFiles(new FileValidatorPipe()) files: Express.Multer.File[],
@@ -114,7 +112,7 @@ export class RestaurantController {
   }
 
   @Delete('/:restaurantId')
-  @UseGuards(JwtRestaurantAuthGuard)
+  @UseGuards(JwtAdminAuthGuard)
   async deleteRestaurant(@Param('restaurantId') restaurantId: string) {
     await this.restaurantService.deleteRestaurantById(restaurantId);
     return {
@@ -123,7 +121,7 @@ export class RestaurantController {
   }
 
   @Get('/:restaurantId/admin')
-  @UseGuards(JwtRestaurantAuthGuard)
+  @UseGuards(JwtAdminAuthGuard)
   async getAllAdminInRestaurant(@Param('restaurantId') restaurantId: string) {
     const admins = await this.adminService.findAllAdminByRestaurantId(
       restaurantId,
@@ -135,7 +133,7 @@ export class RestaurantController {
   }
 
   @Delete('/admin/:adminId')
-  @UseGuards(JwtRestaurantAuthGuard)
+  @UseGuards(JwtAdminAuthGuard)
   async deleteAdminById(@Param('adminId') adminId: string) {
     await this.adminService.deleteAdminByAdminId(adminId);
     return {

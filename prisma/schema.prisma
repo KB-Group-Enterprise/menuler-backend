@@ -32,8 +32,6 @@ model Restaurant {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
   restaurantName        String   @unique
   restaurantImage       String[]
-  email                 String   @unique
-  password              String
   menu                  Menu[]   
   location              String
   registerOn            DateTime      @default(now())
@@ -66,8 +64,28 @@ model Admin {
   lastname              String
   email                 String   @unique
   password              String
+  roleId                String    
+  role                  Role      @relation(fields: [roleId], references: [id])
   restaurant            Restaurant   @relation("AdminRestaurant" ,fields: [restaurantId], references: [id])
   restaurantId          String   @db.ObjectId
+}
+
+model Role {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  key                   String
+  name                  String
+  admin                 Admin[]
+  permissionId          String[]  @db.ObjectId
+  permission            Permission[] @relation(fields: [permissionId], references: [id])
+}
+
+model Permission {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  key                   String
+  name                  String
+  description           String
+  roleId                String[] @db.ObjectId
+  role                  Role[] @relation(fields: [roleId], references: [id])
 }
 
 model Order {

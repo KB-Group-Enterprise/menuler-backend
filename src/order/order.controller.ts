@@ -1,5 +1,16 @@
-import { Controller, Delete, Get, Param, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { Restaurant } from '@prisma/client';
+import { CurrentUser } from 'src/auth/current-user';
 import { JwtAdminAuthGuard } from 'src/auth/guards/jwt-admin.guard';
+import { OrderFilter } from './dto/OrderFilter.dto';
 import { OrderService } from './order.service';
 
 @Controller('order')
@@ -26,10 +37,22 @@ export class OrderController {
     };
   }
 
-  // @Get('/:restaurantId/current_order')
-  // async getCurrentOrderByRestaurantId(
-  //   @Param('restaurantId') restaurantId: string,
-  // ) {}
+  @Post('/:restaurantId/orders')
+  @UseGuards(JwtAdminAuthGuard)
+  async getCurrentOrderByRestaurantId(
+    // @Param('restaurantId') restaurantId: string,
+    @Body() filter: OrderFilter,
+    @CurrentUser() account: Restaurant,
+  ) {
+    const orders = await this.orderService.findAllOrderByRestaurantId(
+      account.id,
+      filter,
+    );
+    return {
+      data: orders,
+      message: 'get all order by restaurant id',
+    };
+  }
 
   @Delete('/:orderId')
   @UseGuards(JwtAdminAuthGuard)

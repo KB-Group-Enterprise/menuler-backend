@@ -6,6 +6,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { TableService } from 'src/table/table.service';
 import { ClientCreateOrderDto } from './dto/ClientCreateOrder.dto';
 import { ClientUpdateOrderDto } from './dto/ClientUpdateOrder.dto';
+import { OrderFilter } from './dto/OrderFilter.dto';
 import { FoodOrder, food_order_status } from './types/FoodOrder';
 
 @Injectable()
@@ -120,5 +121,17 @@ export class OrderService {
     } catch (error) {
       throw new PrismaException(error);
     }
+  }
+
+  async findAllOrderByRestaurantId(restaurantId: string, option: OrderFilter) {
+    return await this.prisma.order.findMany({
+      where: {
+        restaurantId,
+        status: option.status || order_status.NOT_CHECKOUT,
+      },
+      include: { restaurant: true },
+      skip: option.pagination?.skip || 0,
+      take: option.pagination?.limit || 10,
+    });
   }
 }

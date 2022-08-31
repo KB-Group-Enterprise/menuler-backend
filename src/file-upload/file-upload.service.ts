@@ -28,7 +28,7 @@ export class FileUploadService {
           Bucket: bucketS3,
           Key: `${folder}/${folder}-${Date.now()}`,
           Body: file.buffer,
-          //   ACL: 'public-read',
+          // ACL: 'public-read',
         };
         return new Promise((resolve, reject) => {
           this.s3.upload(params, (err, data: S3.ManagedUpload.SendData) => {

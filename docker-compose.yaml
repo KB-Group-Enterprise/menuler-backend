@@ -1,9 +1,9 @@
-version: "3.3"
+version: '3.3'
 services:
-    backend:
-        build: .
-        image: ghcr.io/kb-group-enterprise/menuler-backend:dev
+  backend:
+    build: .
+    image: ghcr.io/kb-group-enterprise/menuler-backend:dev
 networks:
-    default:
-        external:
-            name: capstone-dev
+  default:
+    external:
+      name: capstone-dev

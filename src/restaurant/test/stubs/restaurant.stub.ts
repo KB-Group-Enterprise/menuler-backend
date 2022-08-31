@@ -9,7 +9,5 @@ export const restaurantStub = (): Restaurant => ({
   status: 'OPEN',
   updatedAt: new Date(),
   bankAccounts: [],
-  email: 'restaurant@email.com',
-  password: '12345',
   restaurantImage: [],
 });
