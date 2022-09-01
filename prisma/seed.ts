@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { admins } from './mockData/admin';
 import { menu } from './mockData/menu';
 import { permissions } from './mockData/permission';
 import { restaurants } from './mockData/restaurant';
@@ -27,7 +28,11 @@ async function main() {
   }
   for (const t of tables) {
     const table = await prisma.table.create({ data: t });
-    console.log(`Created menu with id: ${table.id}`);
+    console.log(`Created table with id: ${table.id}`);
+  }
+  for (const a of admins) {
+    const admin = await prisma.admin.create({ data: a });
+    console.log(`Created admin with id: ${admin.id}`);
   }
   console.log(`Seeding finished.`);
 }

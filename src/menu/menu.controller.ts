@@ -10,7 +10,10 @@ import {
 } from '@nestjs/common';
 import { Admin } from '@prisma/client';
 import { CurrentUser } from 'src/auth/current-user';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { ROLE_LIST } from 'src/auth/enums/role-list.enum';
 import { JwtAdminAuthGuard } from 'src/auth/guards/jwt-admin.guard';
+import { RoleGuard } from 'src/auth/guards/role.guard';
 import { CreateMenuList } from 'src/menu/dto/CreateMenuList.dto';
 import { UpdateMenuInput } from './dto/UpdateMenu.dto';
 import { MenuService } from './menu.service';
@@ -28,7 +31,8 @@ export class MenuController {
   }
 
   @Post('/')
-  @UseGuards(JwtAdminAuthGuard)
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(ROLE_LIST.ROOT)
   async insertMenu(
     @Body() menuList: CreateMenuList,
     @CurrentUser() admin: Admin,
@@ -46,7 +50,8 @@ export class MenuController {
   }
 
   @Put('/:menuId')
-  @UseGuards(JwtAdminAuthGuard)
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(ROLE_LIST.ROOT)
   async updateMenu(
     @Body() updateDetail: UpdateMenuInput,
     @Param('menuId') menuId: string,
@@ -67,7 +72,8 @@ export class MenuController {
   }
 
   @Delete('/:menuId')
-  @UseGuards(JwtAdminAuthGuard)
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(ROLE_LIST.ROOT)
   async deleteMenu(
     @Param('menuId') menuId: string,
     @CurrentUser() admin: Admin,

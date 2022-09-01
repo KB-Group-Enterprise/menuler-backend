@@ -21,6 +21,11 @@ import { FileUploadService } from 'src/file-upload/file-upload.service';
 import { S3_FOLDER } from 'src/file-upload/enum/s3-folder.enum';
 import { AdminService } from 'src/admin/admin.service';
 import { JwtAdminAuthGuard } from 'src/auth/guards/jwt-admin.guard';
+import { RoleGuard } from 'src/auth/guards/role.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { ROLE_LIST } from 'src/auth/enums/role-list.enum';
+import { CurrentUser } from 'src/auth/current-user';
+import { Admin } from '@prisma/client';
 
 @Controller('restaurant')
 export class RestaurantController {
@@ -31,13 +36,17 @@ export class RestaurantController {
     private readonly adminService: AdminService,
   ) {}
 
-  @Post('/:restaurantId/register/admin')
-  @UseGuards(JwtAdminAuthGuard)
+  @Post('/register/admin')
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(ROLE_LIST.ROOT)
   async registerAdmin(
     @Body() data: RegisterAdminInput,
-    @Param('restaurantId') restaurantId: string,
+    @CurrentUser() adminAccount: Admin,
   ) {
-    const admin = await this.authService.registerAdmin(restaurantId, data);
+    const admin = await this.authService.registerAdmin(
+      adminAccount.restaurantId,
+      data,
+    );
     return {
       data: admin,
       message: 'register success',
@@ -87,7 +96,8 @@ export class RestaurantController {
   }
 
   @Put('/:restaurantId')
-  @UseGuards(JwtAdminAuthGuard)
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(ROLE_LIST.ROOT)
   @UseInterceptors(FilesInterceptor('restaurantImage'))
   async updateRestaurant(
     @UploadedFiles(new FileValidatorPipe()) files: Express.Multer.File[],
@@ -112,7 +122,8 @@ export class RestaurantController {
   }
 
   @Delete('/:restaurantId')
-  @UseGuards(JwtAdminAuthGuard)
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(ROLE_LIST.ROOT)
   async deleteRestaurant(@Param('restaurantId') restaurantId: string) {
     await this.restaurantService.deleteRestaurantById(restaurantId);
     return {
@@ -121,7 +132,8 @@ export class RestaurantController {
   }
 
   @Get('/:restaurantId/admin')
-  @UseGuards(JwtAdminAuthGuard)
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(ROLE_LIST.ROOT)
   async getAllAdminInRestaurant(@Param('restaurantId') restaurantId: string) {
     const admins = await this.adminService.findAllAdminByRestaurantId(
       restaurantId,
@@ -133,7 +145,8 @@ export class RestaurantController {
   }
 
   @Delete('/admin/:adminId')
-  @UseGuards(JwtAdminAuthGuard)
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(ROLE_LIST.ROOT)
   async deleteAdminById(@Param('adminId') adminId: string) {
     await this.adminService.deleteAdminByAdminId(adminId);
     return {

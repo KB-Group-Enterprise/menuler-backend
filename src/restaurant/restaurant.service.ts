@@ -9,6 +9,7 @@ import { PrismaException } from '../exception/Prisma.exception';
 import { S3 } from 'aws-sdk';
 import { AuthService } from 'src/auth/auth.service';
 import { CreateRestaurantInput } from './dto/restaurant/CreateRestaurantInput';
+import { ROLE_LIST } from 'src/auth/enums/role-list.enum';
 @Injectable()
 export class RestaurantService {
   constructor(
@@ -36,7 +37,7 @@ export class RestaurantService {
         `Restaurant name ${details.restaurantName} is already exist`,
       );
     details.password = await this.authService.hashPassword(details.password);
-    const role = await this.authService.findRoleByKey('ROOT');
+    const role = await this.authService.findRoleByKey(ROLE_LIST.ROOT);
     const newRestaurant = await this.prisma.restaurant.create({
       data: {
         restaurantName: details.restaurantName,
