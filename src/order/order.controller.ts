@@ -37,10 +37,9 @@ export class OrderController {
     };
   }
 
-  @Post('/:restaurantId/orders')
+  @Post('/orders')
   @UseGuards(JwtAdminAuthGuard)
-  async getCurrentOrderByRestaurantId(
-    // @Param('restaurantId') restaurantId: string,
+  async getAllOrderByRestaurantId(
     @Body() filter: OrderFilter,
     @CurrentUser() account: Restaurant,
   ) {

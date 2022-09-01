@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Logger,
   UseFilters,
+  UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -17,10 +18,12 @@ import {
   WsResponse,
 } from '@nestjs/websockets';
 import {
+  Admin,
   ClientGroup,
   client_group_status,
   Order,
   order_status,
+  Role,
   Table,
 } from '@prisma/client';
 import { Socket, Server } from 'socket.io';
@@ -41,6 +44,7 @@ import { MenuService } from 'src/menu/menu.service';
 import { ClientCreateOrderDto } from 'src/order/dto/ClientCreateOrder.dto';
 import { ClientUpdateOrderDto } from 'src/order/dto/ClientUpdateOrder.dto';
 import { food_order_status } from 'src/order/types/FoodOrder';
+import { WsJwtGuard } from 'src/auth/guards/ws-jwt.guard';
 @UseFilters(WsErrorHandler)
 @UsePipes(new ValidationPipe({ transform: true }))
 @WebSocketGateway(3505, { namespace: 'client', cors: { origin: '*' } })
@@ -67,25 +71,27 @@ export class ClientGateWay
     this.logger.log(`Client connected: ${client.id}`);
     // const order = await
     client.on('disconnecting', async (reason) => {
-      const rooms = this.getRoomsExceptSelf(client);
-      this.logger.log(reason);
-      for (const room of rooms) {
-        const sockets = await this.getCurrentSocketInRoom(room);
-        const allUser = sockets
-          .map((user) => {
-            if (user.id !== client.id)
-              return {
-                username: user.data.username,
-                userId: user.id,
-              };
-          })
-          .filter((user) => (user ? true : false));
-        const clientGroup = await this.getCurrentClientGroupOrNew(room);
-        await this.notiToTable(room, clientGroup, {
-          usernameInRoom: allUser,
-          message: `${client.data.username} left`,
-          type: EVENT_TYPE.NOTI,
-        });
+      if (!client.data.admin) {
+        const rooms = this.getRoomsExceptSelf(client);
+        this.logger.log(reason);
+        for (const room of rooms) {
+          const sockets = await this.getCurrentSocketInRoom(room);
+          const allUser = sockets
+            .map((user) => {
+              if (user.id !== client.id)
+                return {
+                  username: user.data.username,
+                  userId: user.id,
+                };
+            })
+            .filter((user) => (user ? true : false));
+          const clientGroup = await this.getCurrentClientGroupOrNew(room);
+          await this.notiToTable(room, clientGroup, {
+            usernameInRoom: allUser,
+            message: `${client.data.username} left`,
+            type: EVENT_TYPE.NOTI,
+          });
+        }
       }
     });
   }
@@ -320,6 +326,30 @@ export class ClientGateWay
     }
   }
 
+  @SubscribeMessage('getCurrentOrder')
+  @UseGuards(WsJwtGuard)
+  async findCurrentOrder(
+    @ConnectedSocket() client: Socket,
+  ): Promise<WsResponse<CustomWsResponse>> {
+    const admin = client.data.admin as Admin & { role: Role };
+    const orders = await this.orderService.findAllOrderByRestaurantId(
+      admin.restaurantId,
+      {
+        status: 'NOT_CHECKOUT',
+      },
+    );
+    this.server.to(admin.restaurantId).emit('currentOrder', {
+      orders: orders,
+    });
+    return {
+      event: 'currentOrder',
+      data: {
+        orders: orders,
+        message: 'get all current order',
+        type: EVENT_TYPE.ORDER,
+      },
+    };
+  }
   async updateOrder(updateData: ClientUpdateOrderDto, client: Socket) {
     await this.menuService.validateMenuList(updateData.additionalFoodOrderList);
     const additionalFoodOrderList = updateData.additionalFoodOrderList as any[];
@@ -336,6 +366,12 @@ export class ClientGateWay
       },
     );
 
+    this.server.to(updatedOrder.restaurantId).emit('currentOrder', {
+      orders: await this.orderService.findAllOrderByRestaurantId(
+        updatedOrder.restaurantId,
+        { status: 'NOT_CHECKOUT' },
+      ),
+    });
     const updatedClientGroup =
       await this.clientGroupService.updateClientGroupById(
         updateData.clientGroupId,
@@ -356,6 +392,14 @@ export class ClientGateWay
       tableToken: createData.tableToken,
     });
     if (!order) throw new BadRequestException('create order failed');
+    this.server.to(order.restaurantId).emit('currentOrder', {
+      orders: await this.orderService.findAllOrderByRestaurantId(
+        order.restaurantId,
+        {
+          status: 'NOT_CHECKOUT',
+        },
+      ),
+    });
     const updatedClientGroup =
       await this.clientGroupService.updateClientGroupById(
         createData.clientGroupId,

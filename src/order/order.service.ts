@@ -80,6 +80,7 @@ export class OrderService {
   async findOrderByOrderId(orderId: string) {
     return await this.prisma.order.findUnique({
       where: { id: orderId },
+      include: { table: true, clientGroup: true },
     });
   }
 
@@ -130,6 +131,7 @@ export class OrderService {
         status: option.status || order_status.NOT_CHECKOUT,
       },
       include: { restaurant: true },
+      orderBy: { createAt: 'desc' },
       skip: option.pagination?.skip || 0,
       take: option.pagination?.limit || 10,
     });

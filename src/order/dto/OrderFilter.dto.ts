@@ -6,9 +6,9 @@ import { BasePagination } from 'src/utils/dto/BasePagination.dto';
 export class OrderFilter {
   @IsOptional()
   @IsEnum(order_status)
-  status: order_status;
+  status?: order_status;
 
   @Type(() => BasePagination)
   @IsOptional()
-  pagination: BasePagination;
+  pagination?: BasePagination;
 }

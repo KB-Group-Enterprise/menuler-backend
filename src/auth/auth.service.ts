@@ -82,5 +82,9 @@ export class AuthService {
     }
   }
 
+  verifyAccessToken(accessToken: string): { sub: string; email: string } {
+    return this.jwtService.decode(accessToken) as any;
+  }
+
   // TODO refreshToken
 }
