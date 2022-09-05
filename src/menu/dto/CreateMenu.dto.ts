@@ -1,11 +1,5 @@
 import { menu_status } from '@prisma/client';
-import {
-  IsEnum,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 export class CreateMenuDto {
   @IsNotEmpty()
   @IsString()
@@ -19,9 +13,8 @@ export class CreateMenuDto {
   @IsString()
   description?: string;
 
-  @IsNumber()
   @IsNotEmpty()
-  price: number;
+  price: string;
 
   @IsOptional()
   @IsEnum(menu_status)

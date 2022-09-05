@@ -1,6 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { PrismaExceptionFilter } from './utils/exception/prisma.exception';
 import { ResponseTransform } from './utils/interceptors/response-transform.interceptor';
 
 async function bootstrap() {
@@ -8,6 +9,7 @@ async function bootstrap() {
     logger: ['log', 'error', 'debug'],
   });
   app.useGlobalInterceptors(new ResponseTransform());
+  app.useGlobalFilters(new PrismaExceptionFilter());
   app.useGlobalPipes(
     new ValidationPipe({
       forbidNonWhitelisted: true,
