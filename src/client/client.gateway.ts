@@ -47,7 +47,10 @@ import { food_order_status } from 'src/order/types/FoodOrder';
 import { WsJwtGuard } from 'src/auth/guards/ws-jwt.guard';
 @UseFilters(WsErrorHandler)
 @UsePipes(new ValidationPipe({ transform: true }))
-@WebSocketGateway(3505, { namespace: 'client', cors: { origin: '*' } })
+@WebSocketGateway(3505, {
+  namespace: 'client',
+  cors: { origin: '*', credentials: true, methods: '*' },
+})
 export class ClientGateWay
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
