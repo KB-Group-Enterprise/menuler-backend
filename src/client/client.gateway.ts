@@ -237,10 +237,16 @@ export class ClientGateWay
     @MessageBody() event: DeselectFood,
   ): Promise<WsResponse<CustomWsResponse>> {
     try {
-      const tableToken = Array.from(client.rooms).find(
-        (room) => room === event.tableToken,
+      const table = await this.tableService.findTableByTableToken(
+        event.tableToken,
       );
-      if (!tableToken) throw new Error('your tableToken is invalid');
+      if (!table) throw Error('tableToken invalid');
+      // console.log(client.rooms);
+      // const tableToken = Array.from(client.rooms).find(
+      //   (room) => room === event.tableToken,
+      // );
+      // if (!tableToken) throw new Error('your tableToken is invalid');
+      const tableToken = event.tableToken;
       const clientGroup = await this.getCurrentClientGroupOrNew(tableToken);
       const allSelectedFoodList = clientGroup.selectedFoodList;
       const deselectedFood = await this.deselectFood(

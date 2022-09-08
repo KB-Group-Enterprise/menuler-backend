@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterAdminInput } from '../restaurant/dto/restaurant/RegisterAdmin.dto';
@@ -48,7 +49,7 @@ export class AdminService {
       where: { id: adminId },
       include: { role: true },
     });
-    if (!admin) throw new NotFoundException('user not found');
+    if (!admin) throw new UnauthorizedException('user not found');
     return admin;
   }
 
@@ -56,7 +57,7 @@ export class AdminService {
     const admin = await this.prisma.admin.findUnique({
       where: { email },
     });
-    if (!admin) throw new NotFoundException('user not found');
+    if (!admin) throw new UnauthorizedException('user not found');
     return admin;
   }
 

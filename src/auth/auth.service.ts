@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -32,7 +34,10 @@ export class AuthService {
       admin.password,
     );
     if (!isPasswordValid)
-      throw new UnauthorizedException('email or password wrong');
+      throw new HttpException(
+        'email or password wrong',
+        HttpStatus.BAD_REQUEST,
+      );
     const accessToken = await this.generateAccessToken(admin.id, admin.email);
     return { accessToken };
   }
