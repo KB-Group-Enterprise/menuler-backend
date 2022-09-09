@@ -13,6 +13,7 @@ export class FileUploadService {
         accessKeyId: process.env.S3_ACCESS_KEY,
         secretAccessKey: process.env.S3_SECRET_KEY,
       },
+      region: process.env.S3_REGION,
     });
   }
 
@@ -29,7 +30,7 @@ export class FileUploadService {
           Bucket: bucketS3,
           Key: `${folder}/${folder}-${Date.now()}${fileExtention}`,
           Body: file.buffer,
-          // ACL: 'public-read',
+          ACL: 'public-read',
         };
         return new Promise((resolve, reject) => {
           this.s3.upload(params, (err, data: S3.ManagedUpload.SendData) => {

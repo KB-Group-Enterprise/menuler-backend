@@ -104,8 +104,10 @@ export class MenuService {
   }
 
   async validateMenuList(foodOrders: FoodOrderInput[]) {
+    if (!foodOrders?.length)
+      throw new BadRequestException('foodOrders must be an array');
     const menuPromiseArr = foodOrders.map((foodOrder) =>
-      this.findMenuById(foodOrder.menuId),
+      this.validateMenu(foodOrder),
     );
     try {
       return await Promise.all([...menuPromiseArr]);
@@ -120,6 +122,6 @@ export class MenuService {
       throw new BadRequestException('this menu does not exist');
     if (validatedMenu.menuStatus === 'CANCEL')
       throw new BadRequestException('this menu has been cancel');
-    return true;
+    return validatedMenu;
   }
 }

@@ -47,7 +47,10 @@ import { food_order_status } from 'src/order/types/FoodOrder';
 import { WsJwtGuard } from 'src/auth/guards/ws-jwt.guard';
 @UseFilters(WsErrorHandler)
 @UsePipes(new ValidationPipe({ transform: true }))
-@WebSocketGateway(3505, { namespace: 'client', cors: { origin: '*' } })
+@WebSocketGateway(3505, {
+  namespace: 'client',
+  cors: { origin: '*', credentials: true, methods: '*' },
+})
 export class ClientGateWay
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
@@ -193,36 +196,37 @@ export class ClientGateWay
       );
       let clientGroup: any
       if (!table) throw Error('tableToken invalid');
-      for (const menu of event.selectedFood) {
-        await this.menuService.validateMenu(menu);
-        clientGroup = await this.getCurrentClientGroupOrNew(table.tableToken);
-        menu.userId = client.data.userId;
-        menu.username = client.data.username;
-        menu.foodOrderId = short().generate();
-        client.data.selectedFoodList = [
-          ...(client.data.selectedFoodList?.length
-            ? client.data.selectedFoodList
-            : []),
-          event.selectedFood,
-        ];
-        const clientSelectedFood = event.selectedFood as unknown as any[];
-        clientGroup = await this.clientGroupService.updateClientGroupById(
-          clientGroup.id,
-          {
-            selectedFoodList: { push: clientSelectedFood },
-          },
-        );
-
-      
-
-      }
+      await this.menuService.validateMenuList(event.selectedFood);
+      let clientGroup = await this.getCurrentClientGroupOrNew(table.tableToken);
+      event.selectedFood.forEach((foodOrder) => {
+        foodOrder.userId = client.data.userId;
+        foodOrder.username = client.data.username;
+        foodOrder.foodOrderId = short().generate();
+      });
+      client.data.selectedFoodList = [
+        ...(client.data.selectedFoodList?.length
+          ? client.data.selectedFoodList
+          : []),
+        ...event.selectedFood,
+      ];
+      const clientSelectedFood = event.selectedFood as unknown as any[];
+      clientGroup = await this.clientGroupService.updateClientGroupById(
+        clientGroup.id,
+        {
+          selectedFoodList: { push: clientSelectedFood },
+        },
+      );
       await this.notiToTable(event.tableToken, clientGroup, {
-        message: `${event.username} selected ${event.selectedFood.map(i => i.foodName).join(',')}`,
+        message: `${event.username} selected ${event.selectedFood
+          .map((food) => food.foodName)
+          .join(',')}`,
       });
       return {
         event: 'selectedFood',
         data: {
-          message: `You selected menu id: ${event.selectedFood.map(i => i.foodName).join(',')}`,
+          message: `You selected menu id: ${event.selectedFood
+            .map((food) => food.foodName)
+            .join(',')}`,
           type: EVENT_TYPE.SELECTED,
         },
       };
