@@ -194,7 +194,7 @@ export class ClientGateWay
       const table = await this.tableService.findTableByTableToken(
         event.tableToken,
       );
-      let clientGroup: any
+      // let clientGroup: any
       if (!table) throw Error('tableToken invalid');
       await this.menuService.validateMenuList(event.selectedFood);
       let clientGroup = await this.getCurrentClientGroupOrNew(table.tableToken);
