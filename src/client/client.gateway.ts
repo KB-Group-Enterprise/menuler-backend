@@ -194,16 +194,18 @@ export class ClientGateWay
         event.tableToken,
       );
       if (!table) throw Error('tableToken invalid');
-      await this.menuService.validateMenu(event.selectedFood);
+      await this.menuService.validateMenuList(event.selectedFood);
       let clientGroup = await this.getCurrentClientGroupOrNew(table.tableToken);
-      event.selectedFood.userId = client.data.userId;
-      event.selectedFood.username = client.data.username;
-      event.selectedFood.foodOrderId = short().generate();
+      event.selectedFood.forEach((foodOrder) => {
+        foodOrder.userId = client.data.userId;
+        foodOrder.username = client.data.username;
+        foodOrder.foodOrderId = short().generate();
+      });
       client.data.selectedFoodList = [
         ...(client.data.selectedFoodList?.length
           ? client.data.selectedFoodList
           : []),
-        event.selectedFood,
+        ...event.selectedFood,
       ];
       const clientSelectedFood = event.selectedFood as unknown as any[];
       clientGroup = await this.clientGroupService.updateClientGroupById(
@@ -213,12 +215,16 @@ export class ClientGateWay
         },
       );
       await this.notiToTable(event.tableToken, clientGroup, {
-        message: `${event.username} selected ${event.selectedFood.foodName}`,
+        message: `${event.username} selected ${event.selectedFood
+          .map((food) => food.foodName)
+          .join(',')}`,
       });
       return {
         event: 'selectedFood',
         data: {
-          message: `You selected menu id: ${event.selectedFood.foodName}`,
+          message: `You selected menu id: ${event.selectedFood
+            .map((food) => food.foodName)
+            .join(',')}`,
           type: EVENT_TYPE.SELECTED,
         },
       };
