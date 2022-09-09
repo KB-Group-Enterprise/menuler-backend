@@ -25,7 +25,7 @@ import { RoleGuard } from 'src/auth/guards/role.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { ROLE_LIST } from 'src/auth/enums/role-list.enum';
 import { CurrentUser } from 'src/auth/current-user';
-import { Admin } from '@prisma/client';
+import { Admin, Menu, Restaurant, Table } from '@prisma/client';
 
 @Controller('restaurant')
 export class RestaurantController {
@@ -151,6 +151,20 @@ export class RestaurantController {
     await this.adminService.deleteAdminByAdminId(adminId);
     return {
       message: `delete admin id: ${adminId}`,
+    };
+  }
+
+  @Get('get/profile')
+  @UseGuards(JwtAdminAuthGuard)
+  async getRestaurantProfile(@CurrentUser() admin: Admin) {
+    console.log(admin);
+    const restaurant = await this.restaurantService.findRestaurantById(
+      admin.restaurantId,
+    );
+
+    return {
+      data: restaurant,
+      message: 'get restaurant success',
     };
   }
 }
