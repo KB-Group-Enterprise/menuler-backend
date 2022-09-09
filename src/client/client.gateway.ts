@@ -150,6 +150,7 @@ export class ClientGateWay
     @ConnectedSocket() client: Socket,
   ): Promise<WsResponse<CustomWsResponse>> {
     try {
+      console.log('called')
       const rooms = this.getRoomsExceptSelf(client);
       const tableToken = rooms.find((room) => room === event.tableToken);
       if (!tableToken) throw new Error('your tableToken is invalid');
@@ -190,32 +191,38 @@ export class ClientGateWay
       const table = await this.tableService.findTableByTableToken(
         event.tableToken,
       );
+      let clientGroup: any
       if (!table) throw Error('tableToken invalid');
-      await this.menuService.validateMenu(event.selectedFood);
-      let clientGroup = await this.getCurrentClientGroupOrNew(table.tableToken);
-      event.selectedFood.userId = client.data.userId;
-      event.selectedFood.username = client.data.username;
-      event.selectedFood.foodOrderId = short().generate();
-      client.data.selectedFoodList = [
-        ...(client.data.selectedFoodList?.length
-          ? client.data.selectedFoodList
-          : []),
-        event.selectedFood,
-      ];
-      const clientSelectedFood = event.selectedFood as unknown as any[];
-      clientGroup = await this.clientGroupService.updateClientGroupById(
-        clientGroup.id,
-        {
-          selectedFoodList: { push: clientSelectedFood },
-        },
-      );
+      for (const menu of event.selectedFood) {
+        await this.menuService.validateMenu(menu);
+        clientGroup = await this.getCurrentClientGroupOrNew(table.tableToken);
+        menu.userId = client.data.userId;
+        menu.username = client.data.username;
+        menu.foodOrderId = short().generate();
+        client.data.selectedFoodList = [
+          ...(client.data.selectedFoodList?.length
+            ? client.data.selectedFoodList
+            : []),
+          event.selectedFood,
+        ];
+        const clientSelectedFood = event.selectedFood as unknown as any[];
+        clientGroup = await this.clientGroupService.updateClientGroupById(
+          clientGroup.id,
+          {
+            selectedFoodList: { push: clientSelectedFood },
+          },
+        );
+
+      
+
+      }
       await this.notiToTable(event.tableToken, clientGroup, {
-        message: `${event.username} selected ${event.selectedFood.foodName}`,
+        message: `${event.username} selected ${event.selectedFood.map(i => i.foodName).join(',')}`,
       });
       return {
         event: 'selectedFood',
         data: {
-          message: `You selected menu id: ${event.selectedFood.foodName}`,
+          message: `You selected menu id: ${event.selectedFood.map(i => i.foodName).join(',')}`,
           type: EVENT_TYPE.SELECTED,
         },
       };
@@ -283,6 +290,7 @@ export class ClientGateWay
     @MessageBody() event: ClientCreateOrderDto,
     @ConnectedSocket() client: Socket,
   ): Promise<WsResponse<CustomWsResponse>> {
+    console.log("called")
     try {
       await this.createOrder(event, client);
       return {

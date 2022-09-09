@@ -15,8 +15,8 @@ export class ClientUpdateOrderDto {
 
   @IsOptional()
   @IsArray()
-  @Type(() => FoodOrderInput)
-  @ValidateNested({ each: true })
+  // @Type(() => FoodOrderInput)
+  // @ValidateNested({ each: true })
   additionalFoodOrderList: FoodOrderInput[];
 
   @IsOptional()
