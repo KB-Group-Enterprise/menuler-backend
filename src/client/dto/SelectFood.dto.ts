@@ -5,7 +5,7 @@ import { BaseClient } from './BaseClient.dto';
 
 export class SelectFood extends BaseClient {
   @IsNotEmpty()
-  @Type(() => FoodOrderInput)
-  @ValidateNested({ each: true })
+  // @Type(() => FoodOrderInput)
+  // @ValidateNested({ each: true })
   selectedFood: FoodOrderInput[];
 }
