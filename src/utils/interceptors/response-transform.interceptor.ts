@@ -33,6 +33,7 @@ export class ResponseTransform<T> implements NestInterceptor<T, Response<T>> {
 
   private removeSensitiveFields(data: any) {
     const baseData = data?.data;
+    if (!baseData) return;
     if (Array.isArray(baseData)) {
       for (const dataInArr of baseData) {
         for (const field of blackListFields) {
