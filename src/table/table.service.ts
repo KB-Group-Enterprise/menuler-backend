@@ -64,7 +64,7 @@ export class TableService {
     tableToken: string,
     { height, width }: QrcodeSize,
   ) {
-    return `http://api.qrserver.com/v1/create-qr-code/?data=${process.env.FRONTEND_URL}/customer/menu/${tableToken}!&size=${width}x${height}`;
+    return `http://api.qrserver.com/v1/create-qr-code/?data=${process.env.FRONTEND_URL}/customer/menu/${tableToken}&size=${width}x${height}`;
   }
 
   private generateTableToken() {
