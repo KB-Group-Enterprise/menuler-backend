@@ -1,5 +1,11 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import { food_order_status } from '../types/FoodOrder';
 import { Options } from './Options.dto';
 export class FoodOrderInput {
@@ -20,9 +26,9 @@ export class FoodOrderInput {
   // @IsString()
   // description: string;
 
-  // @IsNotEmpty()
-  // @IsString()
-  // imageUrl: string;
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
 
   // @IsNotEmpty()
   // @IsNumber()
