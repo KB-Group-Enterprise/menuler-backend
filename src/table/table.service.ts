@@ -64,7 +64,7 @@ export class TableService {
     tableToken: string,
     { height, width }: QrcodeSize,
   ) {
-    return `http://api.qrserver.com/v1/create-qr-code/?data=${process.env.FRONTEND_URL}/customer/menu/${tableToken}!&size=${width}x${height}`;
+    return `http://api.qrserver.com/v1/create-qr-code/?data=${process.env.FRONTEND_URL}/customer/menu/${tableToken}&size=${width}x${height}`;
   }
 
   private generateTableToken() {
@@ -136,8 +136,22 @@ export class TableService {
 
   async updateTable(tableId: string, details: UpdateTableInput, admin: Admin) {
     try {
+      let tableToken: string | undefined;
+      let qrcodeUrl: string | undefined;
+      if (details.isRenewQrcode) {
+        tableToken = this.generateTableToken();
+        qrcodeUrl = this.generateQrcodeImageUrl(tableToken, {
+          height: 100,
+          width: 100,
+        });
+      }
       const table = await this.prisma.table.update({
-        data: { ...details },
+        data: {
+          isActivate: details.isActivate,
+          tableName: details.tableName,
+          qrcodeImageUrl: qrcodeUrl,
+          tableToken: tableToken,
+        },
         where: {
           id_restaurantId: {
             id: tableId,
