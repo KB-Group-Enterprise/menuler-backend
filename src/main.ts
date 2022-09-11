@@ -8,6 +8,11 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['log', 'error', 'debug'],
   });
+  app.enableCors({
+    origin: '*',
+    credentials: true,
+    methods: 'GET,PUT,POST,DELETE',
+  });
   app.useGlobalInterceptors(new ResponseTransform());
   app.useGlobalFilters(new PrismaExceptionFilter());
   app.useGlobalPipes(
@@ -18,11 +23,6 @@ async function bootstrap() {
       // whitelist: true,
     }),
   );
-  app.enableCors({
-    origin: '*',
-    credentials: true,
-    methods: 'GET,PUT,POST,DELETE',
-  });
   app.setGlobalPrefix('/api');
   await app.listen(process.env.PORT || 3000);
 }
