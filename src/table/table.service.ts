@@ -167,6 +167,17 @@ export class TableService {
 
   async deleteTable(tableId: string, admin: Admin) {
     try {
+      const clientGroupDeletePromise = this.prisma.clientGroup.deleteMany({
+        where: { AND: { tableId } },
+      });
+      const orderDeletePromise = this.prisma.order.deleteMany({
+        where: { AND: { tableId, restaurantId: admin.restaurantId } },
+      });
+      try {
+        await Promise.all([clientGroupDeletePromise, orderDeletePromise]);
+      } catch (error) {
+        console.log(error);
+      }
       await this.prisma.table.delete({
         where: {
           id_restaurantId: {
@@ -176,7 +187,9 @@ export class TableService {
         },
       });
     } catch (error) {
-      throw new PrismaException(error);
+      console.log(error);
+      throw error;
+      // throw new PrismaException(error);
     }
   }
 
