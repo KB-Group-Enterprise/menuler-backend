@@ -369,11 +369,15 @@ export class ClientGateWay
     };
   }
   async updateOrder(updateData: ClientUpdateOrderDto, client: Socket) {
-    await this.menuService.validateMenuList(updateData.additionalFoodOrderList);
-    const additionalFoodOrderList = updateData.additionalFoodOrderList as any[];
-    additionalFoodOrderList.forEach(
-      (foodOrder) => (foodOrder.status = food_order_status.ORDERED),
+    const validatedMenuList = await this.menuService.validateMenuList(
+      updateData.additionalFoodOrderList,
     );
+    const additionalFoodOrderList = updateData.additionalFoodOrderList as any[];
+    for (let index = 0; index < additionalFoodOrderList.length; index++) {
+      const foodOrder = additionalFoodOrderList[index];
+      foodOrder.status = food_order_status.ORDERED;
+      foodOrder.imageUrl = validatedMenuList[index].imageUrl;
+    }
     // order.foodOrderList.push(...additionalFoodOrderList);
     const updatedOrder = await this.orderService.updateOrderById(
       updateData.orderId,
@@ -383,7 +387,6 @@ export class ClientGateWay
         updatedAt: new Date(),
       },
     );
-
     this.server.to(updatedOrder.restaurantId).emit('currentOrder', {
       orders: await this.orderService.findAllOrderByRestaurantId(
         updatedOrder.restaurantId,
@@ -402,7 +405,12 @@ export class ClientGateWay
   }
 
   async createOrder(createData: ClientCreateOrderDto, client: Socket) {
-    await this.menuService.validateMenuList(createData.foodOrderList);
+    const validatedMenuList = await this.menuService.validateMenuList(
+      createData.foodOrderList,
+    );
+    validatedMenuList.forEach((menu, index) => {
+      createData.foodOrderList[index].imageUrl = menu.imageUrl;
+    });
     const order = await this.orderService.createOrder({
       clientGroupId: createData.clientGroupId,
       foodOrderList: createData.foodOrderList,

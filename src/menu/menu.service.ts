@@ -77,6 +77,7 @@ export class MenuService {
   }
 
   async findAllMenuByRestaurantId(restaurantId: string) {
+    if (!restaurantId) throw new BadRequestException('restaurant Id invalid');
     const { menu } = await this.prisma.restaurant.findUnique({
       where: { id: restaurantId },
       include: { menu: true },
