@@ -53,12 +53,18 @@ export class MenuService {
     uploadedImage: S3.ManagedUpload.SendData[],
     admin: Admin,
   ) {
+    const additional: any = {};
+
+    if (uploadedImage[0]) {
+      additional.imageUrl = uploadedImage[0].Location;
+    }
+    delete details['menuImage'];
     const updatedMenu = await this.prisma.menu.update({
       data: {
         ...details,
         updatedAt: new Date(),
-        imageUrl: uploadedImage[0].Location,
         price: Number(details.price),
+        ...additional,
       },
       where: {
         restaurantId_id: {

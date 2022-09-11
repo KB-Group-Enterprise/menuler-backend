@@ -153,6 +153,7 @@ export class ClientGateWay
     @ConnectedSocket() client: Socket,
   ): Promise<WsResponse<CustomWsResponse>> {
     try {
+      console.log('called')
       const rooms = this.getRoomsExceptSelf(client);
       const tableToken = rooms.find((room) => room === event.tableToken);
       if (!tableToken) throw new Error('your tableToken is invalid');
@@ -193,6 +194,7 @@ export class ClientGateWay
       const table = await this.tableService.findTableByTableToken(
         event.tableToken,
       );
+      // let clientGroup: any
       if (!table) throw Error('tableToken invalid');
       await this.menuService.validateMenuList(event.selectedFood);
       let clientGroup = await this.getCurrentClientGroupOrNew(table.tableToken);
@@ -292,6 +294,7 @@ export class ClientGateWay
     @MessageBody() event: ClientCreateOrderDto,
     @ConnectedSocket() client: Socket,
   ): Promise<WsResponse<CustomWsResponse>> {
+    console.log("called")
     try {
       await this.createOrder(event, client);
       return {
