@@ -22,6 +22,8 @@ export class WsJwtGuard implements CanActivate {
     const client: Socket = context.switchToWs().getClient<Socket>();
     try {
       const authorization = client.handshake?.headers?.authorization as string;
+      // console.log(client.handshake.headers)
+      // console.log({ authorization })
       const token = authorization.split(' ')[1];
       const payload = this.authService.verifyAccessToken(token);
       const admin = await this.adminService.findAdminByAdminId(payload.sub);
@@ -31,7 +33,7 @@ export class WsJwtGuard implements CanActivate {
 
       return Boolean(admin);
     } catch (err) {
-      client.emit('error', err.message);
+      client.emit('error', err);
       throw new WsException(err.message);
     }
   }

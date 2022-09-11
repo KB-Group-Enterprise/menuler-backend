@@ -88,18 +88,23 @@ export class RestaurantService {
     details: Prisma.RestaurantUpdateInput,
     uploadedImages: S3.ManagedUpload.SendData[],
   ) {
-    if (details.restaurantName) {
-      const isExist = await this.findRestaurantByName(
-        <string>details.restaurantName,
-      );
-      if (isExist)
-        throw new BadRequestException('Your restaurant name already exist');
+    // if (details.restaurantName) {
+    //   const isExist = await this.findRestaurantByName(
+    //     <string>details.restaurantName,
+    //   );
+    //   if (isExist)
+    //     throw new BadRequestException('Your restaurant name already exist');
+    // }
+    const additional = {} as any;
+    if (uploadedImages.length) {
+      additional.restaurantImage = uploadedImages.map((image) => image.Location);
     }
+
     const updatedRestaurant = await this.prisma.restaurant.update({
       data: {
         ...details,
-        restaurantImage: uploadedImages.map((image) => image.Location),
         updatedAt: new Date(),
+        ...additional,
       },
       where: { id: restaurantId },
     });

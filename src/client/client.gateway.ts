@@ -349,6 +349,8 @@ export class ClientGateWay
   async findCurrentOrder(
     @ConnectedSocket() client: Socket,
   ): Promise<WsResponse<CustomWsResponse>> {
+    // console.log('called');
+    
     const admin = client.data.admin as Admin & { role: Role };
     const orders = await this.orderService.findAllOrderByRestaurantId(
       admin.restaurantId,
@@ -399,7 +401,7 @@ export class ClientGateWay
         { selectedFoodList: [] },
       );
     await this.notiToTable(updateData.tableToken, updatedClientGroup, {
-      message: `${client.data.username} create order`,
+      message: `create order`,
     });
     return updatedOrder;
   }
@@ -432,7 +434,7 @@ export class ClientGateWay
         { selectedFoodList: [] },
       );
     await this.notiToTable(createData.tableToken, updatedClientGroup, {
-      message: `${client.data.username} create order`,
+      message: `create order`,
     });
   }
 
