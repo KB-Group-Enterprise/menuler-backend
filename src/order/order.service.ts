@@ -130,7 +130,7 @@ export class OrderService {
         restaurantId,
         status: option.status || order_status.NOT_CHECKOUT,
       },
-      include: { restaurant: true, table: true },
+      include: { restaurant: true, table: true }, // please build
       orderBy: { createAt: 'desc' },
       skip: option.pagination?.skip || 0,
       take: option.pagination?.limit || 10,
