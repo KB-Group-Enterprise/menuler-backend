@@ -18,6 +18,7 @@ import { OrderService } from './order/order.service';
 import { ClientGroupModule } from './client-group/client-group.module';
 import { ClientModule } from './client/client.module';
 import { FileUploadModule } from './file-upload/file-upload.module';
+import { FoodOrderModule } from './food-order/food-order.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -31,6 +32,7 @@ import { FileUploadModule } from './file-upload/file-upload.module';
     OrderModule,
     ClientGroupModule,
     ClientModule,
+    FoodOrderModule,
   ],
   controllers: [AppController, RestaurantController],
   providers: [

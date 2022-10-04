@@ -11,17 +11,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Option {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  name                  String
+  description           String
+  price                 Int
+  menuId                String @db.ObjectId
+  menu                  Menu  @relation(fields: [menuId], references: [id])
+  foodOrderIds           String[] @db.ObjectId
+  foodOrder             FoodOrder[] @relation(fields: [foodOrderIds], references: [id])
+}
 model Menu {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
   foodName              String   
   category              String
   description           String?   
-  imageUrl              String
+  imageUrl              String?
   price                 Int
   menuStatus           menu_status   @default(NORMAL)
-  options               Json[]
+  options               Option[]
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @default(now())
+  foodOrder             FoodOrder[]
   restaurant            Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   restaurantId          String  @db.ObjectId
   @@unique([restaurantId,foodName])
@@ -90,7 +101,7 @@ model Permission {
 
 model Order {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
-  foodOrderList         Json[] 
+  foodOrderList         FoodOrder[] 
   createAt              DateTime  @default(now())
   updatedAt             DateTime  @default(now())
   status                order_status  @default(NOT_CHECKOUT)
@@ -110,9 +121,35 @@ model ClientGroup {
   tableId               String   @db.ObjectId
   order                 Order?   
   createdAt             DateTime @default(now())
-  client                Json[]
+  client                Client[]
   selectedFoodList      Json[]
   status                client_group_status @default(IN_PROGRESS)
+}
+
+model Client {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  username              String
+  status                client_status     @default(ONLINE)
+  clientGroupId         String    @unique @db.ObjectId
+  clientGroup           ClientGroup  @relation(fields: [clientGroupId], references: [id])
+  createdAt             DateTime @default(now())
+}
+
+model FoodOrder {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId               String   @db.ObjectId
+  order                 Order    @relation(fields: [orderId], references: [id])
+  menuId                String   @db.ObjectId
+  menu                  Menu     @relation(fields: [menuId], references: [id])
+  optionIds              String[]   @db.ObjectId
+  options               Option[]  @relation(fields: [optionIds], references: [id])
+  clientId              String    @db.ObjectId
+  status                food_order_status @default(PENDING)
+}
+
+enum client_status {
+  ONLINE
+  OFFLINE
 }
 
 enum client_group_status {
@@ -145,6 +182,13 @@ enum order_client_state {
   // ORDER_MORE_FOOD
   // CANCEL_SOME_FOOD
   // ORDER_AND_CANCEL_FOOD
+}
+
+enum food_order_status {
+  COOKING
+  SERVED
+  CANCEL
+  PENDING
 }
 
 enum order_overall_food_status {

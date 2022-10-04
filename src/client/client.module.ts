@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { AdminModule } from 'src/admin/admin.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { ClientGroupModule } from 'src/client-group/client-group.module';
+import { FoodOrderModule } from 'src/food-order/food-order.module';
 import { MenuModule } from 'src/menu/menu.module';
 import { OrderModule } from 'src/order/order.module';
 import { TableModule } from 'src/table/table.module';
@@ -17,6 +18,7 @@ import { ClientService } from './client.service';
     MenuModule,
     AuthModule,
     AdminModule,
+    FoodOrderModule,
   ],
   providers: [ClientService, ClientGateWay],
   exports: [ClientService, ClientGateWay],

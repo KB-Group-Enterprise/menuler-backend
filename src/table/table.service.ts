@@ -55,7 +55,11 @@ export class TableService {
   async findTableByTableToken(tableToken: string) {
     const table = await this.prisma.table.findUnique({
       where: { tableToken },
-      include: { order: true, clientGroup: true, restaurant: true },
+      include: {
+        order: true,
+        clientGroup: { include: { client: true } },
+        restaurant: true,
+      },
     });
     return table;
   }

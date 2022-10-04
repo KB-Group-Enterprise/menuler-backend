@@ -1,5 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { order_client_state, order_status, Prisma } from '@prisma/client';
+import {
+  FoodOrder,
+  order_client_state,
+  order_status,
+  Prisma,
+} from '@prisma/client';
 import { PrismaException } from 'src/exception/Prisma.exception';
 import { MenuService } from 'src/menu/menu.service';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -7,7 +12,7 @@ import { TableService } from 'src/table/table.service';
 import { ClientCreateOrderDto } from './dto/ClientCreateOrder.dto';
 import { ClientUpdateOrderDto } from './dto/ClientUpdateOrder.dto';
 import { OrderFilter } from './dto/OrderFilter.dto';
-import { FoodOrder, food_order_status } from './types/FoodOrder';
+import { food_order_status } from './types/FoodOrder';
 
 @Injectable()
 export class OrderService {
@@ -22,19 +27,18 @@ export class OrderService {
     tableToken,
     clientGroupId,
   }: ClientCreateOrderDto) {
-    const menuOrderList: FoodOrder[] = [];
-    for (const foodOrder of foodOrderList) {
-      const menu = await this.menuService.findMenuById(foodOrder.menuId);
-      if (!menu) throw new BadRequestException(`menu does not exist`);
-      if (menu.restaurantId !== restaurantId)
-        throw new BadRequestException(`menu does not exist in this restaurant`);
-      menuOrderList.push({
-        ...menu,
-        status: food_order_status.ORDERED,
-        userId: foodOrder.userId,
-        username: foodOrder.username,
-      });
-    }
+    const validatedMenuList = await this.menuService.validateMenuList(
+      foodOrderList,
+    );
+
+    const createManyFoodOrder: Prisma.FoodOrderCreateManyOrderInputEnvelope = {
+      data: validatedMenuList.map((menu, index) => {
+        return {
+          clientId: foodOrderList[index].userId,
+          menuId: menu.id,
+        };
+      }),
+    };
     const table = await this.tableService.findTableByTableToken(tableToken);
     if (!table) throw new BadRequestException(`table does not exist`);
     if (table.restaurantId !== restaurantId)
@@ -49,7 +53,6 @@ export class OrderService {
     if (isOrderNotCheckout)
       throw new BadRequestException(`previous order still not check out`);
 
-    const orderMenuList = menuOrderList as unknown as Prisma.JsonArray;
     const clientGroup = await this.prisma.clientGroup.findUnique({
       where: { id: clientGroupId },
     });
@@ -57,8 +60,8 @@ export class OrderService {
       throw new BadRequestException(`clientGroupId: ${clientGroupId} invalid`);
     const createdOrder = await this.insertOrder({
       restaurant: { connect: { id: restaurantId } },
-      table: { connect: { id: table.id } },
-      foodOrderList: orderMenuList,
+      table: { connect: { tableToken: tableToken } },
+      foodOrderList: { createMany: createManyFoodOrder },
       clientGroup: { connect: { id: clientGroupId } },
     });
     return createdOrder;
@@ -67,6 +70,7 @@ export class OrderService {
   async findOrderByClientGroupId(clientGroupId: string) {
     return await this.prisma.order.findUnique({
       where: { clientGroupId },
+      include: { foodOrderList: true },
     });
   }
 
@@ -88,11 +92,10 @@ export class OrderService {
     orderId: string,
     orderDetails: Prisma.OrderUpdateInput,
   ) {
-    // TODO updateOrder
-    // const order = await this.findOrderByOrderId(orderId);
     return await this.prisma.order.update({
       data: { ...orderDetails },
       where: { id: orderId },
+      include: { foodOrderList: { include: { menu: true } } },
     });
   }
 

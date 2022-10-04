@@ -11,6 +11,7 @@ export class ClientGroupService {
       data: {
         ...createData,
       },
+      include: { client: true },
     });
   }
 
@@ -30,6 +31,7 @@ export class ClientGroupService {
         id: clientGroupId,
       },
       data: { ...updateData },
+      include: { client: true },
     });
   }
 }

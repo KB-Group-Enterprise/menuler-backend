@@ -26,9 +26,9 @@ export class FoodOrderInput {
   // @IsString()
   // description: string;
 
-  @IsOptional()
-  @IsString()
-  imageUrl?: string;
+  // @IsOptional()
+  // @IsString()
+  // imageUrl?: string;
 
   // @IsNotEmpty()
   // @IsNumber()
@@ -47,5 +47,5 @@ export class FoodOrderInput {
   foodOrderId: string;
   userId: string;
   username: string;
-  status: food_order_status;
+  // status: food_order_status;
 }

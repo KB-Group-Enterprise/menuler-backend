@@ -40,8 +40,8 @@ export class MenuService {
         price: Number(price),
         description,
         menuStatus,
-        imageUrl: uploadedImage[0].Location,
-        restaurantId: admin.restaurantId,
+        imageUrl: uploadedImage[0]?.Location,
+        restaurant: { connect: { id: admin.restaurantId } },
       },
     });
     return createdMenu;

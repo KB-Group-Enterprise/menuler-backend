@@ -19,6 +19,9 @@ export class WsErrorHandler implements WsExceptionFilter {
 
   public handleError(client: Socket, exception: HttpException | WsException) {
     this.logger.error(exception);
+    // if (process.env.NODE_ENV !== 'production') {
+    console.log(exception);
+    // }
     if (exception instanceof HttpException) {
       client.emit('error', {
         ...(<HttpException>exception.getResponse()),
