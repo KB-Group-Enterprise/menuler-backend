@@ -6,10 +6,19 @@ import {
   WsExceptionFilter,
 } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
+import {
+  PrismaClientKnownRequestError,
+  PrismaClientValidationError,
+} from '@prisma/client/runtime';
 import { Socket } from 'socket.io';
 import { EVENT_TYPE } from 'src/utils/enums/event-type.enum';
 
-@Catch(WsException, HttpException)
+@Catch(
+  WsException,
+  HttpException,
+  PrismaClientKnownRequestError,
+  PrismaClientValidationError,
+)
 export class WsErrorHandler implements WsExceptionFilter {
   logger: Logger = new Logger('WebSocket');
   public catch(exception: HttpException, host: ArgumentsHost) {

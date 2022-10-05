@@ -137,6 +137,7 @@ model Client {
 
 model FoodOrder {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  note                  String?
   orderId               String   @db.ObjectId
   order                 Order    @relation(fields: [orderId], references: [id])
   menuId                String   @db.ObjectId
@@ -176,7 +177,7 @@ enum order_status {
 
 enum order_client_state {
   PENDING
-  COMFIRMED
+  CONFIRMED
   REJECT
   UPDATE_FOOD
   // ORDER_MORE_FOOD

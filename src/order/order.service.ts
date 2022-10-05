@@ -36,6 +36,8 @@ export class OrderService {
         return {
           clientId: foodOrderList[index].userId,
           menuId: menu.id,
+          note: foodOrderList[index].note,
+          optionIds: [...foodOrderList[index].selectedOptions],
         };
       }),
     };
@@ -95,7 +97,7 @@ export class OrderService {
     return await this.prisma.order.update({
       data: { ...orderDetails },
       where: { id: orderId },
-      include: { foodOrderList: { include: { menu: true } } },
+      include: { foodOrderList: { include: { menu: true } }, table: true },
     });
   }
 
@@ -106,7 +108,7 @@ export class OrderService {
     try {
       const updatedOrder = await this.prisma.order.update({
         data: {
-          clientState: order_client_state.COMFIRMED,
+          clientState: order_client_state.CONFIRMED,
           updatedAt: new Date(),
           table: { connect: { tableToken: orderDetails.tableToken } },
         },
@@ -133,7 +135,7 @@ export class OrderService {
         restaurantId,
         status: option.status || order_status.NOT_CHECKOUT,
       },
-      include: { restaurant: true, table: true }, // please build
+      include: { restaurant: true, table: true, foodOrderList: true }, // please build
       orderBy: { createAt: 'desc' },
       skip: option.pagination?.skip || 0,
       take: option.pagination?.limit || 10,

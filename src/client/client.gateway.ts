@@ -45,6 +45,9 @@ import { ClientUpdateOrderDto } from 'src/order/dto/ClientUpdateOrder.dto';
 import { WsJwtGuard } from 'src/auth/guards/ws-jwt.guard';
 import { ClientService } from './client.service';
 import { FoodOrderService } from 'src/food-order/food-order.service';
+import { CurrentWsAdmin } from 'src/auth/current-ws-admin';
+import { AdminUpdateOrderDto } from './dto/AdminUpdateOrder.dto';
+import { UpdateFoodOrderDto } from 'src/food-order/dto/update-food-order.dto';
 @UseFilters(WsErrorHandler)
 @UsePipes(new ValidationPipe({ transform: true }))
 @WebSocketGateway(3505, {
@@ -74,7 +77,6 @@ export class ClientGateWay
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
-    // const order = await
     client.on('disconnecting', async (reason) => {
       if (!client.data.admin) {
         const rooms = this.getRoomsExceptSelf(client);
@@ -85,16 +87,16 @@ export class ClientGateWay
           });
         }
         for (const room of rooms) {
-          const sockets = await this.getCurrentSocketInRoom(room);
-          const allUser = sockets
-            .map((user) => {
-              if (user.id !== client.id)
-                return {
-                  username: user.data.username,
-                  userId: user.id,
-                };
-            })
-            .filter((user) => (user ? true : false));
+          // const sockets = await this.getCurrentSocketInRoom(room);
+          // const allUser = sockets
+          //   .map((user) => {
+          //     if (user.id !== client.id)
+          //       return {
+          //         username: user.data.username,
+          //         userId: user.id,
+          //       };
+          //   })
+          //   .filter((user) => (user ? true : false));
           const clientGroup = await this.getCurrentClientGroupOrNew(room);
           await this.notiToTable(room, clientGroup, {
             // usernameInRoom: allUser,
@@ -367,8 +369,6 @@ export class ClientGateWay
   async findCurrentOrder(
     @ConnectedSocket() client: Socket,
   ): Promise<WsResponse<CustomWsResponse>> {
-    // console.log('called');
-
     const admin = client.data.admin as Admin & { role: Role };
     const orders = await this.orderService.findAllOrderByRestaurantId(
       admin.restaurantId,
@@ -388,6 +388,87 @@ export class ClientGateWay
       },
     };
   }
+
+  @SubscribeMessage('updateClientOrder')
+  @UseGuards(WsJwtGuard)
+  async updateClientOrder(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() event: AdminUpdateOrderDto,
+  ): Promise<WsResponse<CustomWsResponse>> {
+    const order = await this.adminUpdateClientOrder(event);
+    await this.findCurrentOrder(client);
+    return {
+      event: 'updatedClientOrder',
+      data: {
+        order: order,
+        message: `update order id: ${event.orderId} success`,
+        type: EVENT_TYPE.ORDER,
+      },
+    };
+  }
+  async deleteFoodOrderList(deleteFoodOrderList: string[], orderId: string) {
+    const validatedFoodOrderList =
+      await this.foodOrderService.validateFoodOrderByOrderId(
+        deleteFoodOrderList,
+        orderId,
+      );
+    const deleteFoodOrderPromises = validatedFoodOrderList.map((foodOrder) => {
+      return this.foodOrderService.deleteFoodOrderById(foodOrder.id);
+    });
+    await Promise.all([...deleteFoodOrderPromises]);
+  }
+
+  async updateFoodOrderList(
+    updateFoodOrderList: UpdateFoodOrderDto[],
+    orderId: string,
+  ) {
+    await this.foodOrderService.validateFoodOrderByOrderId(
+      updateFoodOrderList.map((fd) => fd.foodOrderId),
+      orderId,
+    );
+    const updateFoodOrderPromises = updateFoodOrderList.map((fd) => {
+      return this.foodOrderService.updateFoodOrderById(fd.foodOrderId, {
+        status: fd.status,
+      });
+    });
+    return await Promise.all([...updateFoodOrderPromises]);
+  }
+
+  async adminUpdateClientOrder(updateDto: AdminUpdateOrderDto) {
+    if (updateDto.deleteFoodOrderList?.length) {
+      await this.deleteFoodOrderList(
+        updateDto.deleteFoodOrderList,
+        updateDto.orderId,
+      );
+    }
+    if (updateDto.updateFoodOrderList?.length) {
+      await this.updateFoodOrderList(
+        updateDto.updateFoodOrderList,
+        updateDto.orderId,
+      );
+    }
+    const connectTable = updateDto.transferTableId
+      ? { connect: { id: updateDto.transferTableId } }
+      : undefined;
+    const updatedOrder = await this.orderService.updateOrderById(
+      updateDto.orderId,
+      {
+        clientState: updateDto.clientState,
+        updatedAt: new Date(),
+        overallFoodStatus: updateDto.overallFoodStatus,
+        table: connectTable,
+        status: updateDto.status,
+      },
+    );
+    const clientGroup = await this.getCurrentClientGroupOrNew(
+      updatedOrder.table.tableToken,
+    );
+    await this.notiToTable(updatedOrder.table.tableToken, clientGroup, {
+      message: 'waiter has been update your order',
+    });
+    return updatedOrder;
+  }
+
   async updateOrder(updateData: ClientUpdateOrderDto, client: Socket) {
     const validatedMenuList = await this.menuService.validateMenuList(
       updateData.additionalFoodOrderList,
@@ -410,6 +491,7 @@ export class ClientGateWay
     const updatedOrder = await this.orderService.updateOrderById(
       updateData.orderId,
       {
+        clientState: 'UPDATE_FOOD',
         table: { connect: { tableToken: updateData.tableToken } },
         foodOrderList: { createMany: createManyFoodOrder },
         updatedAt: new Date(),

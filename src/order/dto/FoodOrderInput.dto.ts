@@ -21,10 +21,10 @@ export class FoodOrderInput {
   // @IsString()
   // category: string;
 
-  // @IsOptional()
-  // @IsNotEmpty()
-  // @IsString()
-  // description: string;
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  note: string;
 
   // @IsOptional()
   // @IsString()
@@ -40,9 +40,9 @@ export class FoodOrderInput {
 
   @IsNotEmpty()
   @IsArray()
-  @Type(() => Options)
-  @ValidateNested({ each: true })
-  selectedOptions: Options[];
+  // @Type(() => Options)
+  // @ValidateNested({ each: true })
+  selectedOptions: string[];
 
   foodOrderId: string;
   userId: string;
