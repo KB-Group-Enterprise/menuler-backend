@@ -72,6 +72,7 @@ export class MenuService {
           restaurantId: admin.restaurantId,
         },
       },
+      include: { options: true },
     });
     return updatedMenu;
   }
@@ -80,7 +81,7 @@ export class MenuService {
     if (!restaurantId) throw new BadRequestException('restaurant Id invalid');
     const { menu } = await this.prisma.restaurant.findUnique({
       where: { id: restaurantId },
-      include: { menu: true },
+      include: { menu: { include: { options: true } } },
     });
     return menu;
   }
@@ -89,6 +90,7 @@ export class MenuService {
     try {
       return await this.prisma.menu.findUnique({
         where: { id: menuId },
+        include: { options: true },
       });
     } catch (error) {
       throw new PrismaException(error);

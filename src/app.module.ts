@@ -19,6 +19,7 @@ import { ClientGroupModule } from './client-group/client-group.module';
 import { ClientModule } from './client/client.module';
 import { FileUploadModule } from './file-upload/file-upload.module';
 import { FoodOrderModule } from './food-order/food-order.module';
+import { OptionModule } from './option/option.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -33,6 +34,7 @@ import { FoodOrderModule } from './food-order/food-order.module';
     ClientGroupModule,
     ClientModule,
     FoodOrderModule,
+    OptionModule,
   ],
   controllers: [AppController, RestaurantController],
   providers: [

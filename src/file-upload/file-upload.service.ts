@@ -25,7 +25,7 @@ export class FileUploadService {
     const filesPromises = files.map(
       (file): Promise<S3.ManagedUpload.SendData> => {
         const fileExtention = file.originalname.match(/\.(.*)/)[0];
-        const bucketS3 = 'akira-aws';
+        const bucketS3 = process.env.S3_BUCKET_ID;
         const params: S3.PutObjectRequest = {
           Bucket: bucketS3,
           Key: `${folder}/${folder}-${Date.now()}${fileExtention}`,

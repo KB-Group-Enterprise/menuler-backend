@@ -20,6 +20,7 @@ jobs:
           echo S3_SECRET_KEY=${{ secrets.ENV_DEV_S3_SECRET_KEY }} >> .env
           echo S3_ACCESS_KEY=${{ secrets.ENV_DEV_S3_ACCESS_KEY }} >> .env
           echo S3_REGION=${{ secrets.ENV_DEV_S3_REGION }} >> .env
+          echo S3_BUCKET_ID=${{ secrets.ENV_DEV_S3_BUCKET_ID }} >> .env
       - name: Send docker-compose to host
         uses: appleboy/scp-action@master
         with:
