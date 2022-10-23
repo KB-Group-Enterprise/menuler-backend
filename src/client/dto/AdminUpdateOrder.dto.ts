@@ -9,11 +9,13 @@ import {
   IsEnum,
   IsMongoId,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
 import { UpdateFoodOrderDto } from 'src/food-order/dto/update-food-order.dto';
+import { AdminUpdateBillDto } from './AdminUpdateBill.dto';
 
 export class AdminUpdateOrderDto {
   @IsNotEmpty()
@@ -49,4 +51,8 @@ export class AdminUpdateOrderDto {
   @IsString()
   // @IsMongoId()
   transferTableId?: string;
+
+  @IsOptional()
+  @IsObject()
+  bill?: AdminUpdateBillDto;
 }

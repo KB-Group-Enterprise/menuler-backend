@@ -27,20 +27,6 @@ export class OrderService {
     tableToken,
     clientGroupId,
   }: ClientCreateOrderDto) {
-    const validatedMenuList = await this.menuService.validateMenuList(
-      foodOrderList,
-    );
-
-    const createManyFoodOrder: Prisma.FoodOrderCreateManyOrderInputEnvelope = {
-      data: validatedMenuList.map((menu, index) => {
-        return {
-          clientId: foodOrderList[index].userId,
-          menuId: menu.id,
-          note: foodOrderList[index].note,
-          optionIds: [...foodOrderList[index].selectedOptions],
-        };
-      }),
-    };
     const table = await this.tableService.findTableByTableToken(tableToken);
     if (!table) throw new BadRequestException(`table does not exist`);
     if (table.restaurantId !== restaurantId)
@@ -55,6 +41,20 @@ export class OrderService {
     if (isOrderNotCheckout)
       throw new BadRequestException(`previous order still not check out`);
 
+    const validatedMenuList = await this.menuService.validateMenuList(
+      foodOrderList,
+    );
+
+    const createManyFoodOrder: Prisma.FoodOrderCreateManyOrderInputEnvelope = {
+      data: validatedMenuList.map((menu, index) => {
+        return {
+          clientId: foodOrderList[index].userId,
+          menuId: menu.id,
+          note: foodOrderList[index].note,
+          optionIds: [...foodOrderList[index].selectedOptions],
+        };
+      }),
+    };
     const clientGroup = await this.prisma.clientGroup.findUnique({
       where: { id: clientGroupId },
     });
@@ -72,7 +72,7 @@ export class OrderService {
   async findOrderByClientGroupId(clientGroupId: string) {
     return await this.prisma.order.findUnique({
       where: { clientGroupId },
-      include: { foodOrderList: true },
+      include: { foodOrderList: true, bill: true },
     });
   }
 
@@ -86,7 +86,12 @@ export class OrderService {
   async findOrderByOrderId(orderId: string) {
     return await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: { table: true, clientGroup: true },
+      include: {
+        table: true,
+        clientGroup: true,
+        foodOrderList: { include: { menu: true, options: true } },
+        bill: true,
+      },
     });
   }
 
@@ -133,9 +138,20 @@ export class OrderService {
     return await this.prisma.order.findMany({
       where: {
         restaurantId,
-        status: option.status || order_status.NOT_CHECKOUT,
+        status: option.isNeedBilling ? undefined : option.status,
+        OR: option.isNeedBilling
+          ? [
+              { status: order_status.BILLING },
+              { status: order_status.NOT_CHECKOUT },
+            ]
+          : undefined,
       },
-      include: { restaurant: true, table: true, foodOrderList: true }, // please build
+      include: {
+        restaurant: true,
+        table: true,
+        foodOrderList: true,
+        bill: true,
+      },
       orderBy: { createAt: 'desc' },
       skip: option.pagination?.skip || 0,
       take: option.pagination?.limit || 10,

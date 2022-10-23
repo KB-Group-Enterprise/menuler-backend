@@ -8,7 +8,7 @@ export class FoodOrderService {
 
   async findFoodOrderByClientId(clientId: string) {
     return await this.prisma.foodOrder.findMany({
-      where: { clientId },
+      where: { clientId: { hasSome: clientId } },
     });
   }
 

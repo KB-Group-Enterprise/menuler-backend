@@ -7,7 +7,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { Restaurant } from '@prisma/client';
+import { Admin, Restaurant } from '@prisma/client';
 import { CurrentUser } from 'src/auth/current-user';
 import { JwtAdminAuthGuard } from 'src/auth/guards/jwt-admin.guard';
 import { OrderFilter } from './dto/OrderFilter.dto';
@@ -41,10 +41,10 @@ export class OrderController {
   @UseGuards(JwtAdminAuthGuard)
   async getAllOrderByRestaurantId(
     @Body() filter: OrderFilter,
-    @CurrentUser() account: Restaurant,
+    @CurrentUser() account: Admin,
   ) {
     const orders = await this.orderService.findAllOrderByRestaurantId(
-      account.id,
+      account.restaurantId,
       filter,
     );
     return {

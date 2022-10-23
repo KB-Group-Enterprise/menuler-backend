@@ -1,6 +1,8 @@
+import { client_status, order_client_state } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -17,11 +19,15 @@ export class ClientUpdateOrderDto {
   @IsArray()
   // @Type(() => FoodOrderInput)
   // @ValidateNested({ each: true })
-  additionalFoodOrderList: FoodOrderInput[];
+  additionalFoodOrderList?: FoodOrderInput[];
 
   @IsOptional()
   @IsString()
   tableToken?: string;
+
+  @IsOptional()
+  @IsEnum(order_client_state)
+  clientState?: order_client_state;
 
   @IsNotEmpty()
   clientGroupId: string;

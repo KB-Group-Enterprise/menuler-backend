@@ -48,6 +48,8 @@ import { FoodOrderService } from 'src/food-order/food-order.service';
 import { CurrentWsAdmin } from 'src/auth/current-ws-admin';
 import { AdminUpdateOrderDto } from './dto/AdminUpdateOrder.dto';
 import { UpdateFoodOrderDto } from 'src/food-order/dto/update-food-order.dto';
+import { BillService } from 'src/bill/bill.service';
+import { IoTThingsGraph } from 'aws-sdk';
 @UseFilters(WsErrorHandler)
 @UsePipes(new ValidationPipe({ transform: true }))
 @WebSocketGateway(3505, {
@@ -69,6 +71,7 @@ export class ClientGateWay
     private menuService: MenuService,
     private clientService: ClientService,
     private foodOrderService: FoodOrderService,
+    private billService: BillService,
   ) {}
 
   afterInit(server: Server) {
@@ -372,9 +375,7 @@ export class ClientGateWay
     const admin = client.data.admin as Admin & { role: Role };
     const orders = await this.orderService.findAllOrderByRestaurantId(
       admin.restaurantId,
-      {
-        status: 'NOT_CHECKOUT',
-      },
+      { isNeedBilling: true },
     );
     this.server.to(admin.restaurantId).emit('currentOrder', {
       orders: orders,
@@ -450,16 +451,57 @@ export class ClientGateWay
     const connectTable = updateDto.transferTableId
       ? { connect: { id: updateDto.transferTableId } }
       : undefined;
+    const order = await this.orderService.findOrderByOrderId(updateDto.orderId);
+    const isFoodOrderAllServed = order.foodOrderList.every(
+      (foodOrder) => foodOrder.status === 'SERVED',
+    );
+    if (updateDto.status === 'BILLING') {
+      if (!isFoodOrderAllServed)
+        throw new BadRequestException(
+          'All food order must be served before check bill',
+        );
+      const totalPrice = order.foodOrderList.reduce(
+        (total: number, foodOrder) => {
+          total += foodOrder.menu.price;
+          total += foodOrder.options.reduce(
+            (totalOptionPrice, option) => totalOptionPrice + option.price,
+            0,
+          );
+          return total;
+        },
+        0,
+      );
+      await this.billService.createBill({
+        order: { connect: { id: order.id } },
+        totalPrice,
+      });
+    }
+    let isPaid;
+    if (updateDto.bill) {
+      const bill = await this.billService.updateBillById(
+        updateDto.bill.billId,
+        {
+          status: updateDto.bill.status,
+        },
+      );
+      isPaid = bill.status === 'PAID' ? true : false;
+    }
     const updatedOrder = await this.orderService.updateOrderById(
       updateDto.orderId,
       {
         clientState: updateDto.clientState,
         updatedAt: new Date(),
-        overallFoodStatus: updateDto.overallFoodStatus,
+        overallFoodStatus: isFoodOrderAllServed ? 'ALL_SERVED' : 'PENDING',
         table: connectTable,
-        status: updateDto.status,
+        status: isPaid ? 'PAID' : updateDto.status,
       },
     );
+    if (isPaid) {
+      await this.clientGroupService.updateClientGroupById(
+        updatedOrder.clientGroupId,
+        { status: 'COMPLETED' },
+      );
+    }
     const clientGroup = await this.getCurrentClientGroupOrNew(
       updatedOrder.table.tableToken,
     );
@@ -470,17 +512,25 @@ export class ClientGateWay
   }
 
   async updateOrder(updateData: ClientUpdateOrderDto, client: Socket) {
-    const validatedMenuList = await this.menuService.validateMenuList(
-      updateData.additionalFoodOrderList,
-    );
-    const createManyFoodOrder: Prisma.FoodOrderCreateManyOrderInputEnvelope = {
-      data: validatedMenuList.map((menu, index) => {
-        return {
-          clientId: updateData.additionalFoodOrderList[index].userId,
-          menuId: menu.id,
-        };
-      }),
-    };
+    let createManyFoodOrder:
+      | Prisma.FoodOrderCreateManyOrderInputEnvelope
+      | undefined;
+    if (updateData.additionalFoodOrderList) {
+      const validatedMenuList = await this.menuService.validateMenuList(
+        updateData.additionalFoodOrderList,
+      );
+      createManyFoodOrder = {
+        data: validatedMenuList.map((menu, index) => {
+          const foodOrder = updateData.additionalFoodOrderList[index];
+          return {
+            clientId: foodOrder.userId,
+            menuId: menu.id,
+            note: foodOrder.note,
+            optionIds: foodOrder.selectedOptions,
+          };
+        }),
+      };
+    }
     // const additionalFoodOrderList = updateData.additionalFoodOrderList as any[];
     // for (let index = 0; index < additionalFoodOrderList.length; index++) {
     //   const foodOrder = additionalFoodOrderList[index];
@@ -488,12 +538,26 @@ export class ClientGateWay
     //   foodOrder.imageUrl = validatedMenuList[index].imageUrl;
     // }
     // order.foodOrderList.push(...additionalFoodOrderList);
+    const isAdditionFood = updateData.additionalFoodOrderList?.length
+      ? true
+      : false;
+    const order = await this.orderService.findOrderByOrderId(
+      updateData.orderId,
+    );
+    const isFoodOrderAllServed =
+      order.overallFoodStatus === 'ALL_SERVED' ? true : false;
     const updatedOrder = await this.orderService.updateOrderById(
       updateData.orderId,
       {
-        clientState: 'UPDATE_FOOD',
-        table: { connect: { tableToken: updateData.tableToken } },
-        foodOrderList: { createMany: createManyFoodOrder },
+        clientState: updateData.clientState,
+        table: updateData.tableToken
+          ? { connect: { tableToken: updateData.tableToken } }
+          : undefined,
+        foodOrderList: createManyFoodOrder
+          ? { createMany: createManyFoodOrder }
+          : undefined,
+        overallFoodStatus:
+          isFoodOrderAllServed && isAdditionFood ? 'PENDING' : 'ALL_SERVED',
         updatedAt: new Date(),
       },
     );
@@ -599,8 +663,11 @@ export class ClientGateWay
 
   private isOrderStillNotCheckOut(order: Order[]) {
     if (order.length === 0) return true;
-    return order.filter((order) => order.status === order_status.NOT_CHECKOUT)
-      .length
+    return order.filter(
+      (order) =>
+        order.status === order_status.NOT_CHECKOUT ||
+        order.status === order_status.BILLING,
+    ).length
       ? true
       : false;
   }

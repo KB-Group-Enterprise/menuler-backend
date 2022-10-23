@@ -113,6 +113,7 @@ model Order {
   restaurantId          String    @db.ObjectId
   clientGroup           ClientGroup  @relation(fields: [clientGroupId], references: [id])
   clientGroupId         String    @unique @db.ObjectId
+  bill                  Bill?      
 }
 
 model ClientGroup {
@@ -133,6 +134,8 @@ model Client {
   clientGroupId         String    @unique @db.ObjectId
   clientGroup           ClientGroup  @relation(fields: [clientGroupId], references: [id])
   createdAt             DateTime @default(now())
+  foodOrderId           String[]    @unique @db.ObjectId
+  foodOrder             FoodOrder[]    @relation(fields: [foodOrderId], references: [id])
 }
 
 model FoodOrder {
@@ -144,8 +147,18 @@ model FoodOrder {
   menu                  Menu     @relation(fields: [menuId], references: [id])
   optionIds              String[]   @db.ObjectId
   options               Option[]  @relation(fields: [optionIds], references: [id])
-  clientId              String    @db.ObjectId
+  clientId              String[]    @db.ObjectId
+  client               Client[]  @relation(fields: [clientId], references: [id])
   status                food_order_status @default(PENDING)
+}
+
+model Bill {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt             DateTime @default(now())
+  orderId               String @unique
+  order                 Order @relation(fields: [orderId], references: [id])
+  status                bill_status   @default(NOT_PAID)
+  totalPrice            Int
 }
 
 enum client_status {
@@ -180,6 +193,7 @@ enum order_client_state {
   CONFIRMED
   REJECT
   UPDATE_FOOD
+  BILLING
   // ORDER_MORE_FOOD
   // CANCEL_SOME_FOOD
   // ORDER_AND_CANCEL_FOOD
@@ -195,4 +209,10 @@ enum food_order_status {
 enum order_overall_food_status {
   ALL_SERVED
   PENDING
+}
+
+enum bill_status {
+  PAID
+  NOT_PAID
+  CANCEL
 }

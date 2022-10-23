@@ -11,4 +11,7 @@ export class OrderFilter {
   @Type(() => BasePagination)
   @IsOptional()
   pagination?: BasePagination;
+
+  @IsOptional()
+  isNeedBilling?: boolean;
 }
