@@ -4,12 +4,14 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Menu, Prisma } from '@prisma/client';
 import { PrismaException } from '../exception/Prisma.exception';
 import { S3 } from 'aws-sdk';
 import { AuthService } from 'src/auth/auth.service';
 import { CreateRestaurantInput } from './dto/restaurant/CreateRestaurantInput';
 import { ROLE_LIST } from 'src/auth/enums/role-list.enum';
+import { FoodOrder } from 'src/order/types/FoodOrder';
+import * as _ from 'lodash';
 @Injectable()
 export class RestaurantService {
   constructor(
@@ -127,5 +129,79 @@ export class RestaurantService {
     } catch (error) {
       throw new PrismaException(error);
     }
+  }
+
+  async getRestaurantSummary(restaurantId: string ,query: any) {
+    // number of order completed
+    // leaderboard for most menu ordered
+
+    const findManyArgs: Prisma.OrderFindManyArgs = {
+       where: { restaurantId }, 
+       include: { foodOrderList: { include: { menu: true }} } 
+    }
+    if (query.startDate && query.endDate) {
+      const startDate = new Date(query.startDate);
+      const endDate = new Date(query.endDate);
+      findManyArgs.where.createAt = { gte: startDate, lte: endDate }
+    }
+
+    const orders = await this.prisma.order.findMany(findManyArgs)
+    const totalOrderCount = orders.length;
+    // console.log(orders)
+    const foodOrdersLists: FoodOrder[] = orders.map((i: any) => i.foodOrderList).flat(1) as any;
+    // console.log(foodOrdersLists);
+    const menus: Menu[] = foodOrdersLists.map((i: any) => i.menu);
+    const totalMenuCount = menus.length;
+    const totalSales = menus.reduce((r,v) => {
+      return r + v.price;
+    }, 0)
+    // console.log(menus);
+    // income produced by using the apps
+    const menuGroupby = _.groupBy(menus, 'foodName');
+    // console.log(menuGroupby);
+    let leaderBoard: {
+      foodName: string;
+      price: number;
+      sales: number;
+      income: number;
+      category: string
+    }[] = []
+
+    Object.keys(menuGroupby).forEach(i => {
+      const menuItems = menuGroupby[i];
+      const sales = menuItems.length;
+      const menuItem = menuItems[0];
+      if (!menuItem) return;
+      const foodName = menuItem.foodName;
+      const price = menuItem.price;
+      const income = +(sales * price).toFixed(2);
+      leaderBoard.push({
+        foodName,
+        price,
+        sales,
+        income,
+        category: menuItem.category,
+      })
+    })
+
+    leaderBoard = leaderBoard.sort((a,b) => {
+      return b.sales - a.sales
+    })
+
+    const topTen = leaderBoard.slice(0,9);
+
+    // console.log(leaderBoard);
+    // console.log(topTen);
+    // console.log({ totalOrderCount });
+
+    return {
+      leaderBoard,
+      topTen,
+      total: {
+        totalMenuCount,
+        totalOrderCount,
+      }
+    }
+    
   }
 }

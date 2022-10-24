@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -166,5 +167,14 @@ export class RestaurantController {
       data: restaurant,
       message: 'get restaurant success',
     };
+  }
+
+  @Get('get/summary')
+  @UseGuards(JwtAdminAuthGuard)
+  async getRestaurantSummary(@CurrentUser() admin: Admin, @Query() queryArgs: any) {
+    return {
+      data: await this.restaurantService.getRestaurantSummary(admin.restaurantId, queryArgs),
+      message: 'get restaurant summary success',
+    }
   }
 }
