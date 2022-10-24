@@ -180,7 +180,7 @@ export class ClientGateWay
       const foodOrder = await this.foodOrderService.findFoodOrderByClientId(
         client.data.userId,
       );
-      if (!foodOrder) {
+      if (!foodOrder.length) {
         await this.clientService.deleteClientById(client.data.userId);
         client.leave(event.tableToken);
       } else {
@@ -452,16 +452,20 @@ export class ClientGateWay
       ? { connect: { id: updateDto.transferTableId } }
       : undefined;
     const order = await this.orderService.findOrderByOrderId(updateDto.orderId);
-    const isFoodOrderAllServed = order.foodOrderList.every(
-      (foodOrder) => foodOrder.status === 'SERVED',
+    const isFoodOrderNotServed = order.foodOrderList.some(
+      (foodOrder) =>
+        foodOrder.status === 'COOKING' || foodOrder.status === 'PENDING',
     );
     if (updateDto.status === 'BILLING') {
-      if (!isFoodOrderAllServed)
+      if (isFoodOrderNotServed)
         throw new BadRequestException(
           'All food order must be served before check bill',
         );
       const totalPrice = order.foodOrderList.reduce(
         (total: number, foodOrder) => {
+          if (foodOrder.status === 'CANCEL') {
+            return total;
+          }
           total += foodOrder.menu.price;
           total += foodOrder.options.reduce(
             (totalOptionPrice, option) => totalOptionPrice + option.price,
@@ -491,7 +495,7 @@ export class ClientGateWay
       {
         clientState: updateDto.clientState,
         updatedAt: new Date(),
-        overallFoodStatus: isFoodOrderAllServed ? 'ALL_SERVED' : 'PENDING',
+        overallFoodStatus: isFoodOrderNotServed ? 'PENDING' : 'ALL_SERVED',
         table: connectTable,
         status: isPaid ? 'PAID' : updateDto.status,
       },
@@ -502,11 +506,20 @@ export class ClientGateWay
         { status: 'COMPLETED' },
       );
     }
-    const clientGroup = await this.getCurrentClientGroupOrNew(
-      updatedOrder.table.tableToken,
-    );
+    let clientGroup;
+    if (updatedOrder.status === 'PAID') {
+      clientGroup = await this.clientGroupService.findClientGroupById(
+        updatedOrder.clientGroupId,
+      );
+    } else {
+      clientGroup = await this.getCurrentClientGroupOrNew(
+        updatedOrder.table.tableToken,
+      );
+    }
+
     await this.notiToTable(updatedOrder.table.tableToken, clientGroup, {
       message: 'waiter has been update your order',
+      order: updatedOrder,
     });
     return updatedOrder;
   }
@@ -651,7 +664,7 @@ export class ClientGateWay
     const clientGroupInProgress = this.findClientGroupInProgress(
       table.clientGroup,
     ) as ClientGroup & { client: Client[] };
-    if (isOrderStillNotCheckout && clientGroupInProgress) {
+    if (isOrderStillNotCheckout || clientGroupInProgress) {
       clientGroup = clientGroupInProgress;
     } else {
       clientGroup = await this.clientGroupService.createClientGroup({
@@ -663,11 +676,8 @@ export class ClientGateWay
 
   private isOrderStillNotCheckOut(order: Order[]) {
     if (order.length === 0) return true;
-    return order.filter(
-      (order) =>
-        order.status === order_status.NOT_CHECKOUT ||
-        order.status === order_status.BILLING,
-    ).length
+    return order.filter((order) => order.status === order_status.NOT_CHECKOUT)
+      .length
       ? true
       : false;
   }

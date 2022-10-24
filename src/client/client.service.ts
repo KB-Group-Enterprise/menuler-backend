@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Client, Prisma } from '@prisma/client';
+import { Client, ClientGroup, Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -7,18 +7,31 @@ export class ClientService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findClientById(id: string) {
-    return await this.prisma.client.findUnique({ where: { id } });
+    return await this.prisma.client.findUnique({
+      where: { id },
+      include: { clientGroup: true },
+    });
   }
 
   async findClientOrCreate(clientData: Prisma.ClientCreateInput, id?: string) {
-    let client: Client;
+    let client;
     if (!id) {
       client = await this.createClient(clientData);
-    } else {
-      client = await this.findClientById(id);
-      client = await this.updateClientById(client.id, { status: 'ONLINE' });
-      if (!client) client = await this.createClient(clientData);
+      return client;
     }
+    client = await this.findClientById(id);
+    if (
+      !client ||
+      (client as Client & { clientGroup: ClientGroup })?.clientGroup?.status ===
+        'COMPLETED'
+    ) {
+      client = await this.createClient(clientData);
+      return client;
+    }
+    client = await this.updateClientById(client.id, {
+      status: 'ONLINE',
+      clientGroup: clientData.clientGroup,
+    });
     return client;
   }
 

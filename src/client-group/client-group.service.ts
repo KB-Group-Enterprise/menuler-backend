@@ -18,7 +18,7 @@ export class ClientGroupService {
   async findClientGroupById(clientGroupId: string) {
     return await this.prismaService.clientGroup.findUnique({
       where: { id: clientGroupId },
-      include: { order: true },
+      include: { order: true, client: true },
     });
   }
 
