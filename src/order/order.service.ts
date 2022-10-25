@@ -149,7 +149,7 @@ export class OrderService {
       include: {
         restaurant: true,
         table: true,
-        foodOrderList: true,
+        foodOrderList: { include: { menu: true }},
         bill: true,
       },
       orderBy: { createAt: 'desc' },
