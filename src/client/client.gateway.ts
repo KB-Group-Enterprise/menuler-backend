@@ -435,6 +435,18 @@ export class ClientGateWay
     return await Promise.all([...updateFoodOrderPromises]);
   }
 
+  async deleteClientList(clientIds: string[]) {
+    const deleteFoodOrderOfThatClient = clientIds.map((clientId) => {
+      return this.foodOrderService.deleteFoodOrderOrRemoveClientInFoodOrder(
+        clientId,
+      );
+    });
+    // const deleteClientPromise = clientIds.map((clientId) => {
+    //   return this.clientService.deleteClientById(clientId);
+    // });
+    await Promise.all([deleteFoodOrderOfThatClient]);
+  }
+
   async adminUpdateClientOrder(updateDto: AdminUpdateOrderDto) {
     if (updateDto.deleteFoodOrderList?.length) {
       await this.deleteFoodOrderList(
@@ -448,6 +460,10 @@ export class ClientGateWay
         updateDto.orderId,
       );
     }
+    if (updateDto.deleteClientList?.length) {
+      await this.deleteClientList(updateDto.deleteClientList);
+    }
+
     const connectTable = updateDto.transferTableId
       ? { connect: { id: updateDto.transferTableId } }
       : undefined;

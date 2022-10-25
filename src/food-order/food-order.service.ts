@@ -12,6 +12,45 @@ export class FoodOrderService {
     });
   }
 
+  async deleteFoodOrderOrRemoveClientInFoodOrder(clientId: string) {
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+      include: { clientGroup: true },
+    });
+    // console.log('selectedFoodList', client.clientGroup.selectedFoodList);
+
+    const selectedFoodList = client.clientGroup.selectedFoodList.filter(
+      (food: any) => food.userId !== clientId,
+    );
+    if (selectedFoodList.length) {
+      await this.prisma.clientGroup.update({
+        data: { selectedFoodList },
+        where: { id: client.clientGroupId },
+      });
+    }
+    // console.log('selectedFoodList', selectedFoodList);
+
+    const foodOrders = await this.findFoodOrderByClientId(clientId);
+
+    // console.log(foodOrders);
+    const deleteFoodOrderPromise = foodOrders
+      .filter((foodOrder) => foodOrder.clientId.length === 1)
+      .map((foodOrder) => this.deleteFoodOrderById(foodOrder.id));
+    if (deleteFoodOrderPromise.length) {
+      await Promise.all([...deleteFoodOrderPromise]);
+    }
+    // console.log('deleteFoodOrderPromise', deleteFoodOrderPromise);
+
+    // const removeClientFromFoodOrderPromise = foodOrders.filter(
+    //   (foodOrder) => foodOrder.clientId.length > 1,
+    // );
+    // console.log('removeClientFromFoodOrder', removeClientFromFoodOrderPromise);
+    // if (removeClientFromFoodOrderPromise.length) {
+    //   await Promise.all([...removeClientFromFoodOrderPromise]);
+    // }
+    await this.prisma.client.delete({ where: { id: clientId } });
+  }
+
   async findFoodOrderById(id: string) {
     return await this.prisma.foodOrder.findUnique({
       where: { id },

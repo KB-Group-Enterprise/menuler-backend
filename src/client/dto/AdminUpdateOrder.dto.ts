@@ -55,4 +55,8 @@ export class AdminUpdateOrderDto {
   @IsOptional()
   @IsObject()
   bill?: AdminUpdateBillDto;
+
+  @IsOptional()
+  @IsArray()
+  deleteClientList?: string[];
 }
