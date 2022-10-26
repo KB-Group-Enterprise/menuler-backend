@@ -72,7 +72,7 @@ export class OrderService {
   async findOrderByClientGroupId(clientGroupId: string) {
     return await this.prisma.order.findUnique({
       where: { clientGroupId },
-      include: { foodOrderList: true, bill: true },
+      include: { foodOrderList: { include: { menu: true } }, bill: true },
     });
   }
 
@@ -149,7 +149,7 @@ export class OrderService {
       include: {
         restaurant: true,
         table: true,
-        foodOrderList: { include: { menu: true }},
+        foodOrderList: { include: { menu: true } },
         bill: true,
       },
       orderBy: { createAt: 'desc' },
