@@ -21,6 +21,7 @@ import { FileUploadModule } from './file-upload/file-upload.module';
 import { FoodOrderModule } from './food-order/food-order.module';
 import { OptionModule } from './option/option.module';
 import { BillModule } from './bill/bill.module';
+import { BankAccountModule } from './bank-account/bank-account.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -37,6 +38,7 @@ import { BillModule } from './bill/bill.module';
     FoodOrderModule,
     OptionModule,
     BillModule,
+    BankAccountModule,
   ],
   controllers: [AppController, RestaurantController],
   providers: [
