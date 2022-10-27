@@ -225,10 +225,14 @@ export class ClientGateWay
       if (!table) throw Error('tableToken invalid');
       await this.menuService.validateMenuList(event.selectedFood);
       let clientGroup = await this.getCurrentClientGroupOrNew(table.tableToken);
+
+
       event.selectedFood.forEach((foodOrder) => {
-        foodOrder.userId = client.data.userId;
-        foodOrder.username = client.data.username;
+        foodOrder.userId = event['userId'];
+        foodOrder.username = event.username;
         foodOrder.foodOrderId = short().generate();
+
+        // console.log(foodOrder);
       });
       client.data.selectedFoodList = [
         ...(client.data.selectedFoodList?.length
