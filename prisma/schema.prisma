@@ -178,6 +178,7 @@ enum client_status {
 enum client_group_status {
   IN_PROGRESS
   COMPLETED
+  REJECT
 }
 
 enum menu_status {

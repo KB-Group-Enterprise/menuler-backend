@@ -22,6 +22,7 @@ import {
   Client,
   ClientGroup,
   client_group_status,
+  FoodOrder,
   Order,
   order_status,
   Prisma,
@@ -50,6 +51,8 @@ import { AdminUpdateOrderDto } from './dto/AdminUpdateOrder.dto';
 import { UpdateFoodOrderDto } from 'src/food-order/dto/update-food-order.dto';
 import { BillService } from 'src/bill/bill.service';
 import { IoTThingsGraph } from 'aws-sdk';
+import { UpdateClientGroupTable } from './dto/UpdateClientGroupTable';
+import { type } from 'os';
 @UseFilters(WsErrorHandler)
 @UsePipes(new ValidationPipe({ transform: true }))
 @WebSocketGateway(3505, {
@@ -406,6 +409,25 @@ export class ClientGateWay
       },
     };
   }
+
+  @SubscribeMessage('clearTable')
+  @UseGuards(WsJwtGuard)
+  async clearTable(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() event: UpdateClientGroupTable,
+  ): Promise<WsResponse<CustomWsResponse>> {
+    await this.clientGroupService.updateClientGroupById(event.clientGroupId, {
+      status: event.status,
+    });
+    return {
+      event: 'clearedTable',
+      data: {
+        message: 'cleared table',
+        type: EVENT_TYPE.NOTI,
+      },
+    };
+  }
+
   async deleteFoodOrderList(deleteFoodOrderList: string[], orderId: string) {
     const validatedFoodOrderList =
       await this.foodOrderService.validateFoodOrderByOrderId(
@@ -432,6 +454,27 @@ export class ClientGateWay
       });
     });
     return await Promise.all([...updateFoodOrderPromises]);
+  }
+
+  async handleBill(order: Order & any) {
+    const totalPrice = order.foodOrderList.reduce(
+      (total: number, foodOrder) => {
+        if (foodOrder.status === 'CANCEL') {
+          return total;
+        }
+        total += foodOrder.menu.price;
+        total += foodOrder.options.reduce(
+          (totalOptionPrice, option) => totalOptionPrice + option.price,
+          0,
+        );
+        return total;
+      },
+      0,
+    );
+    await this.billService.createBill({
+      order: { connect: { id: order.id } },
+      totalPrice,
+    });
   }
 
   async deleteClientList(clientIds: string[]) {
@@ -476,24 +519,7 @@ export class ClientGateWay
         throw new BadRequestException(
           'All food order must be served before check bill',
         );
-      const totalPrice = order.foodOrderList.reduce(
-        (total: number, foodOrder) => {
-          if (foodOrder.status === 'CANCEL') {
-            return total;
-          }
-          total += foodOrder.menu.price;
-          total += foodOrder.options.reduce(
-            (totalOptionPrice, option) => totalOptionPrice + option.price,
-            0,
-          );
-          return total;
-        },
-        0,
-      );
-      await this.billService.createBill({
-        order: { connect: { id: order.id } },
-        totalPrice,
-      });
+      await this.handleBill(order);
     }
     let isPaid;
     if (updateDto.bill) {
@@ -513,6 +539,10 @@ export class ClientGateWay
         overallFoodStatus: isFoodOrderNotServed ? 'PENDING' : 'ALL_SERVED',
         table: connectTable,
         status: isPaid ? 'PAID' : updateDto.status,
+        clientGroup:
+          updateDto.status === 'CANCEL'
+            ? { update: { status: 'REJECT' } }
+            : undefined,
       },
     );
     if (isPaid) {
