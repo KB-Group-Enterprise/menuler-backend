@@ -128,6 +128,10 @@ export class ClientGateWay
       if (!table.isActivate)
         throw new BadRequestException('this table is not avaiable');
       let clientGroup = await this.getCurrentClientGroupOrNew(table.tableToken);
+      const isUsernameExist = await this.clientService.findClientByUsernameAndClientGroupId(event.username, clientGroup.id);
+      if (isUsernameExist && !event.userId) {
+        throw new Error('[handleJoinTable] username taken');
+      }
       const user = await this.clientService.findClientOrCreate(
         {
           username: event.username,
