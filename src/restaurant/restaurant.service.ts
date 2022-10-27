@@ -200,6 +200,7 @@ export class RestaurantService {
       total: {
         totalMenuCount,
         totalOrderCount,
+        totalSales
       }
     }
     
