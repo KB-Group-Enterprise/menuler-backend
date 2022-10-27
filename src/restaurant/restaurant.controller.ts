@@ -171,10 +171,16 @@ export class RestaurantController {
 
   @Get('get/summary')
   @UseGuards(JwtAdminAuthGuard)
-  async getRestaurantSummary(@CurrentUser() admin: Admin, @Query() queryArgs: any) {
+  async getRestaurantSummary(
+    @CurrentUser() admin: Admin,
+    @Query() queryArgs: any,
+  ) {
     return {
-      data: await this.restaurantService.getRestaurantSummary(admin.restaurantId, queryArgs),
+      data: await this.restaurantService.getRestaurantSummary(
+        admin.restaurantId,
+        queryArgs,
+      ),
       message: 'get restaurant summary success',
-    }
+    };
   }
 }

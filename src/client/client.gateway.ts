@@ -135,7 +135,6 @@ export class ClientGateWay
         },
         event.userId,
       );
-      // console.log(user);
       client.data.userId = user.id;
       client.data.username = user.username;
       client.data.joinedAt = Date.now();
@@ -691,7 +690,7 @@ export class ClientGateWay
   }
 
   private isOrderStillNotCheckOut(order: Order[]) {
-    if (order.length === 0) return true;
+    if (order.length === 0) return false;
     return order.filter((order) => order.status === order_status.NOT_CHECKOUT)
       .length
       ? true

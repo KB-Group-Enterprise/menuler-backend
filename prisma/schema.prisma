@@ -48,11 +48,20 @@ model Restaurant {
   registerOn            DateTime      @default(now())
   isActivate            Boolean  @default(true)
   status                restaurant_status  @default(OPEN)
-  bankAccounts           Json[]
+  bankAccounts           BankAccount[]
   table                 Table[]
   admin                 Admin[] @relation("AdminRestaurant")
   updatedAt             DateTime  @default(now())
   order                 Order[]   
+}
+
+model BankAccount {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  bankName              String
+  imageUrl              String?
+  accountNumber         String
+  restaurantId          String
+  restaurant            Restaurant      @relation(fields: [restaurantId], references: [id])
 }
 
 model Table {

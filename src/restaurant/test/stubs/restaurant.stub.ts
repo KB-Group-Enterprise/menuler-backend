@@ -8,6 +8,5 @@ export const restaurantStub = (): Restaurant => ({
   restaurantName: 'mockRestaurant',
   status: 'OPEN',
   updatedAt: new Date(),
-  bankAccounts: [],
   restaurantImage: [],
 });
