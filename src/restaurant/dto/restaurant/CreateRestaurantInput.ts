@@ -34,4 +34,7 @@ export class CreateRestaurantInput {
   @IsNotEmpty()
   @IsString()
   lastname: string;
+
+  accountNumber: string;
+  bankName: string;
 }
