@@ -138,7 +138,7 @@ export class RestaurantService {
     // leaderboard for most menu ordered
 
     const findManyArgs: Prisma.OrderFindManyArgs = {
-      where: { restaurantId },
+      where: { restaurantId, status: 'PAID' },
       include: { foodOrderList: { include: { menu: true } } },
     };
     if (query.startDate && query.endDate) {
@@ -150,13 +150,27 @@ export class RestaurantService {
     const orders = await this.prisma.order.findMany(findManyArgs);
     const totalOrderCount = orders.length;
     // console.log(orders)
-    const foodOrdersLists: FoodOrder[] = orders
+    const foodOrdersLists: FoodOrder[] = (orders
       .map((i: any) => i.foodOrderList)
-      .flat(1) as any;
-    // console.log(foodOrdersLists);
-    const menus: Menu[] = foodOrdersLists.map((i: any) => i.menu);
+      .flat(1) as FoodOrder[]).filter(i => i.status !== 'CANCEL');
+
+    let optionIdPools: string[] = []
+    const menus: Menu[] = foodOrdersLists.map((i: any) => {
+      i.menu['optionIds'] = i.optionIds;
+      optionIdPools.push(...i.optionIds);
+     return i.menu
+    });
+    optionIdPools = _.uniq(optionIdPools);
+    // console.log(optionIdPools)
+    const optionDetailData = await this.prisma.option.findMany({ where: { id: { in: optionIdPools }}});
+    // console.log(optionDetailData);
+    const optionDetailRecord = optionDetailData.reduce((r,v) => {
+      r[v.id] = v;
+      return r;
+    }, {} as Record<string, typeof optionDetailData[0]>)
+    // console.log(menus);
     const totalMenuCount = menus.length;
-    const totalSales = menus.reduce((r, v) => {
+    let totalSales = menus.reduce((r, v) => {
       return r + v.price;
     }, 0);
     // console.log(menus);
@@ -178,7 +192,18 @@ export class RestaurantService {
       if (!menuItem) return;
       const foodName = menuItem.foodName;
       const price = menuItem.price;
-      const income = +(sales * price).toFixed(2);
+      let addtionalIncome = 0;
+      if (menuItem['optionIds']) {
+        menuItem['optionIds'].forEach((optid: string) => {
+          const optionRecord = optionDetailRecord[optid];
+          if (optionDetailRecord) {
+            addtionalIncome = optionRecord.price;
+            // console.log({ addtionalIncome })
+          }
+        })
+      }
+      const income = +(sales * price).toFixed(2) + addtionalIncome;
+      totalSales += addtionalIncome;
       leaderBoard.push({
         foodName,
         price,
@@ -204,7 +229,9 @@ export class RestaurantService {
       total: {
         totalMenuCount,
         totalOrderCount,
-      },
-    };
+        totalSales
+      }
+    }
+    
   }
 }

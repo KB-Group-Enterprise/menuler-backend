@@ -13,6 +13,12 @@ export class ClientService {
     });
   }
 
+  async findClientByUsernameAndClientGroupId(username: string, clientGroupId: string) {
+    return await this.prisma.client.findFirst({
+      where: { username: username, clientGroupId: clientGroupId }
+    })
+  }
+
   async findClientOrCreate(clientData: Prisma.ClientCreateInput, id?: string) {
     let client;
     if (!id) {
