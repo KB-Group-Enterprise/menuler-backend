@@ -60,6 +60,7 @@ model BankAccount {
   bankName              String
   imageUrl              String?
   accountNumber         String
+  accountName           String
   restaurantId          String
   restaurant            Restaurant      @relation(fields: [restaurantId], references: [id])
 }

@@ -8,4 +8,8 @@ export class CreateBankAccountDto {
   @IsNotEmpty()
   @IsString()
   accountNumber: string;
+
+  @IsNotEmpty()
+  @IsString()
+  accountName: string;
 }

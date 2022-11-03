@@ -3,7 +3,7 @@ import { Admin } from '@prisma/client';
 import { S3 } from 'aws-sdk';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateBankAccountDto } from './dto/create-bank-account.dto';
-import { UpdateBankAccountDto } from './dto/create-bank-account.dto copy';
+import { UpdateBankAccountDto } from './dto/update-bank-account.dto';
 
 @Injectable()
 export class BankAccountService {

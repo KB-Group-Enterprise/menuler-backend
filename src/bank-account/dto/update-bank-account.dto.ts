@@ -8,4 +8,8 @@ export class UpdateBankAccountDto {
   @IsOptional()
   @IsString()
   accountNumber: string;
+
+  @IsOptional()
+  @IsString()
+  accountName: string;
 }

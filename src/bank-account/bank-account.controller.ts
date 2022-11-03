@@ -24,6 +24,7 @@ import { FileUploadService } from 'src/file-upload/file-upload.service';
 import { FileValidatorPipe } from 'src/file-upload/pipe/file-validator.pipe';
 import { BankAccountService } from './bank-account.service';
 import { CreateBankAccountDto } from './dto/create-bank-account.dto';
+import { UpdateBankAccountDto } from './dto/update-bank-account.dto';
 
 @Controller('bank-account')
 export class BankAccountController {
@@ -66,7 +67,7 @@ export class BankAccountController {
   async updateBankAccount(
     @Param('bankAccountId') bankAccountId: string,
     @UploadedFiles(new FileValidatorPipe()) files: Express.Multer.File[],
-    @Body() bankAccountData: CreateBankAccountDto,
+    @Body() bankAccountData: UpdateBankAccountDto,
     @CurrentUser() admin: Admin,
   ) {
     let uploadedBankAccountImages;
