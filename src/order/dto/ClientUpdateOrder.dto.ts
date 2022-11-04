@@ -1,4 +1,4 @@
-import { client_status, order_client_state } from '@prisma/client';
+import { bill_method, client_status, order_client_state } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -28,6 +28,10 @@ export class ClientUpdateOrderDto {
   @IsOptional()
   @IsEnum(order_client_state)
   clientState?: order_client_state;
+
+  @IsOptional()
+  @IsEnum(bill_method)
+  billMethod?: bill_method;
 
   @IsNotEmpty()
   clientGroupId: string;

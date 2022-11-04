@@ -166,9 +166,16 @@ model Bill {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
   createdAt             DateTime @default(now())
   orderId               String @unique
+  method                bill_method?
   order                 Order @relation(fields: [orderId], references: [id])
   status                bill_status   @default(NOT_PAID)
   totalPrice            Int
+}
+
+enum bill_method {
+  SUM
+  DIVINE
+  EACH
 }
 
 enum client_status {

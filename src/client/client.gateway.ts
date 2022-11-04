@@ -131,7 +131,11 @@ export class ClientGateWay
       if (!table.isActivate)
         throw new BadRequestException('this table is not avaiable');
       let clientGroup = await this.getCurrentClientGroupOrNew(table.tableToken);
-      const isUsernameExist = await this.clientService.findClientByUsernameAndClientGroupId(event.username, clientGroup.id);
+      const isUsernameExist =
+        await this.clientService.findClientByUsernameAndClientGroupId(
+          event.username,
+          clientGroup.id,
+        );
       if (isUsernameExist && !event.userId) {
         throw new Error('[handleJoinTable] username taken');
       }
@@ -226,9 +230,19 @@ export class ClientGateWay
       );
       // let clientGroup: any
       if (!table) throw Error('tableToken invalid');
-      await this.menuService.validateMenuList(event.selectedFood);
       let clientGroup = await this.getCurrentClientGroupOrNew(table.tableToken);
-
+      const order = await this.orderService.findOrderByClientGroupId(
+        clientGroup.id,
+      );
+      if (
+        order?.bill?.status === 'NOT_PAID' ||
+        order?.bill?.status === 'PAID'
+      ) {
+        throw new BadRequestException(
+          `You can not choose food because you are in billing progress`,
+        );
+      }
+      await this.menuService.validateMenuList(event.selectedFood);
 
       event.selectedFood.forEach((foodOrder) => {
         foodOrder.userId = event['userId'];
@@ -293,6 +307,14 @@ export class ClientGateWay
       // if (!tableToken) throw new Error('your tableToken is invalid');
       const tableToken = event.tableToken;
       const clientGroup = await this.getCurrentClientGroupOrNew(tableToken);
+      const order = await this.orderService.findOrderByClientGroupId(
+        clientGroup.id,
+      );
+      if (order.bill?.status === 'NOT_PAID' || order.bill?.status === 'PAID') {
+        throw new BadRequestException(
+          `You can not choose food because you are in billing progress`,
+        );
+      }
       const allSelectedFoodList = clientGroup.selectedFoodList;
       const deselectedFood = await this.deselectFood(
         event.foodOrderId,
@@ -523,10 +545,10 @@ export class ClientGateWay
         foodOrder.status === 'COOKING' || foodOrder.status === 'PENDING',
     );
     if (updateDto.status === 'BILLING') {
-      if (isFoodOrderNotServed)
-        throw new BadRequestException(
-          'All food order must be served before check bill',
-        );
+      // if (isFoodOrderNotServed)
+      //   throw new BadRequestException(
+      //     'All food order must be served before check bill',
+      //   );
       await this.handleBill(order);
     }
     let isPaid;
@@ -597,6 +619,16 @@ export class ClientGateWay
         }),
       };
     }
+
+    const order = await this.orderService.findOrderByOrderId(
+      updateData.orderId,
+    );
+    if (order.bill && updateData.billMethod) {
+      await this.billService.updateBillById(order.bill.id, {
+        method: updateData.billMethod,
+      });
+    }
+
     // const additionalFoodOrderList = updateData.additionalFoodOrderList as any[];
     // for (let index = 0; index < additionalFoodOrderList.length; index++) {
     //   const foodOrder = additionalFoodOrderList[index];
@@ -607,11 +639,8 @@ export class ClientGateWay
     const isAdditionFood = updateData.additionalFoodOrderList?.length
       ? true
       : false;
-    const order = await this.orderService.findOrderByOrderId(
-      updateData.orderId,
-    );
-    const isFoodOrderAllServed =
-      order.overallFoodStatus === 'ALL_SERVED' ? true : false;
+    // const isFoodOrderAllServed =
+    //   order.overallFoodStatus === 'ALL_SERVED' ? true : false;
     const updatedOrder = await this.orderService.updateOrderById(
       updateData.orderId,
       {
@@ -622,15 +651,14 @@ export class ClientGateWay
         foodOrderList: createManyFoodOrder
           ? { createMany: createManyFoodOrder }
           : undefined,
-        overallFoodStatus:
-          isFoodOrderAllServed && isAdditionFood ? 'PENDING' : 'ALL_SERVED',
+        overallFoodStatus: isAdditionFood ? 'PENDING' : undefined,
         updatedAt: new Date(),
       },
     );
     this.server.to(updatedOrder.restaurantId).emit('currentOrder', {
       orders: await this.orderService.findAllOrderByRestaurantId(
         updatedOrder.restaurantId,
-        { status: 'NOT_CHECKOUT' },
+        { isNeedBilling: true },
       ),
     });
     const updatedClientGroup =
@@ -639,7 +667,7 @@ export class ClientGateWay
         { selectedFoodList: [] },
       );
     await this.notiToTable(updateData.tableToken, updatedClientGroup, {
-      message: `create order`,
+      message: `update order`,
     });
     return updatedOrder;
   }

@@ -13,10 +13,13 @@ export class ClientService {
     });
   }
 
-  async findClientByUsernameAndClientGroupId(username: string, clientGroupId: string) {
+  async findClientByUsernameAndClientGroupId(
+    username: string,
+    clientGroupId: string,
+  ) {
     return await this.prisma.client.findFirst({
-      where: { username: username, clientGroupId: clientGroupId }
-    })
+      where: { username: username, clientGroupId: clientGroupId },
+    });
   }
 
   async findClientOrCreate(clientData: Prisma.ClientCreateInput, id?: string) {
@@ -51,6 +54,7 @@ export class ClientService {
     clientId: string,
     updateClient: Prisma.ClientUpdateInput,
   ) {
+    if (!clientId) return;
     return await this.prisma.client.update({
       data: { ...updateClient },
       where: { id: clientId },

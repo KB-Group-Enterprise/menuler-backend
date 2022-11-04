@@ -102,7 +102,11 @@ export class OrderService {
     return await this.prisma.order.update({
       data: { ...orderDetails },
       where: { id: orderId },
-      include: { foodOrderList: { include: { menu: true } }, table: true },
+      include: {
+        foodOrderList: { include: { menu: true } },
+        table: true,
+        bill: true,
+      },
     });
   }
 
@@ -151,6 +155,7 @@ export class OrderService {
         table: true,
         foodOrderList: { include: { menu: true } },
         bill: true,
+        clientGroup: { include: { client: true } },
       },
       orderBy: { createAt: 'desc' },
       skip: option.pagination?.skip || 0,
