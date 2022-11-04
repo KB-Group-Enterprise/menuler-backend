@@ -9,6 +9,7 @@ import { OrderModule } from 'src/order/order.module';
 import { TableModule } from 'src/table/table.module';
 import { ClientGateWay } from './client.gateway';
 import { ClientService } from './client.service';
+import { ClientController } from './client.controller';
 
 @Global()
 @Module({
@@ -24,5 +25,6 @@ import { ClientService } from './client.service';
   ],
   providers: [ClientService, ClientGateWay],
   exports: [ClientService, ClientGateWay],
+  controllers: [ClientController],
 })
 export class ClientModule {}

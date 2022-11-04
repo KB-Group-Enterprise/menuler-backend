@@ -12,6 +12,12 @@ export class FoodOrderService {
     });
   }
 
+  async findFoodOrdersByOrderId(orderId: string) {
+    return await this.prisma.foodOrder.findMany({
+      where: { orderId },
+    });
+  }
+
   async deleteFoodOrderOrRemoveClientInFoodOrder(clientId: string) {
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },

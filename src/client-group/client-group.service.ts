@@ -31,7 +31,7 @@ export class ClientGroupService {
         id: clientGroupId,
       },
       data: { ...updateData },
-      include: { client: true },
+      include: { client: true, order: true },
     });
   }
 }

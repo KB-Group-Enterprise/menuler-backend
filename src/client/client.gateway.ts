@@ -17,17 +17,7 @@ import {
   WebSocketServer,
   WsResponse,
 } from '@nestjs/websockets';
-import {
-  Admin,
-  Client,
-  ClientGroup,
-  client_group_status,
-  FoodOrder,
-  Order,
-  order_status,
-  Prisma,
-  Role,
-} from '@prisma/client';
+import { Admin, ClientGroup, Order, Prisma, Role } from '@prisma/client';
 import { Socket, Server } from 'socket.io';
 import { ClientGroupService } from 'src/client-group/client-group.service';
 import { CustomWsResponse } from '../client/dto/CustomWsResponse';
@@ -78,6 +68,7 @@ export class ClientGateWay
   ) {}
 
   afterInit(server: Server) {
+    this.clientService.server = server;
     this.logger.log('TableGateWay Init');
   }
 
@@ -103,8 +94,9 @@ export class ClientGateWay
           //       };
           //   })
           //   .filter((user) => (user ? true : false));
-          const clientGroup = await this.getCurrentClientGroupOrNew(room);
-          await this.notiToTable(room, clientGroup, {
+          const clientGroup =
+            await this.clientService.getCurrentClientGroupOrNew(room);
+          await this.clientService.notiToTable(room, clientGroup, {
             // usernameInRoom: allUser,
             message: `${client.data.username} left`,
             type: EVENT_TYPE.NOTI,
@@ -130,7 +122,9 @@ export class ClientGateWay
       if (!table) throw new Error('No table');
       if (!table.isActivate)
         throw new BadRequestException('this table is not avaiable');
-      let clientGroup = await this.getCurrentClientGroupOrNew(table.tableToken);
+      let clientGroup = await this.clientService.getCurrentClientGroupOrNew(
+        table.tableToken,
+      );
       const isUsernameExist =
         await this.clientService.findClientByUsernameAndClientGroupId(
           event.username,
@@ -150,8 +144,10 @@ export class ClientGateWay
       client.data.username = user.username;
       client.data.joinedAt = Date.now();
       client.join(table.tableToken);
-      clientGroup = await this.getCurrentClientGroupOrNew(table.tableToken);
-      await this.notiToTable(event.tableToken, clientGroup, {
+      clientGroup = await this.clientService.getCurrentClientGroupOrNew(
+        table.tableToken,
+      );
+      await this.clientService.notiToTable(event.tableToken, clientGroup, {
         message: `${event.username} joined`,
         type: EVENT_TYPE.NOTI,
       });
@@ -186,7 +182,9 @@ export class ClientGateWay
       const rooms = this.getRoomsExceptSelf(client);
       const tableToken = rooms.find((room) => room === event.tableToken);
       if (!tableToken) throw new Error('your tableToken is invalid');
-      const clientGroup = await this.getCurrentClientGroupOrNew(tableToken);
+      const clientGroup = await this.clientService.getCurrentClientGroupOrNew(
+        tableToken,
+      );
       const foodOrder = await this.foodOrderService.findFoodOrderByClientId(
         client.data.userId,
       );
@@ -196,7 +194,7 @@ export class ClientGateWay
       } else {
         throw new BadRequestException('Your food order still there');
       }
-      await this.notiToTable(event.tableToken, clientGroup, {
+      await this.clientService.notiToTable(event.tableToken, clientGroup, {
         message: `${event.username} left`,
       });
 
@@ -230,7 +228,9 @@ export class ClientGateWay
       );
       // let clientGroup: any
       if (!table) throw Error('tableToken invalid');
-      let clientGroup = await this.getCurrentClientGroupOrNew(table.tableToken);
+      let clientGroup = await this.clientService.getCurrentClientGroupOrNew(
+        table.tableToken,
+      );
       const order = await this.orderService.findOrderByClientGroupId(
         clientGroup.id,
       );
@@ -264,7 +264,7 @@ export class ClientGateWay
           selectedFoodList: { push: clientSelectedFood },
         },
       );
-      await this.notiToTable(event.tableToken, clientGroup, {
+      await this.clientService.notiToTable(event.tableToken, clientGroup, {
         message: `${event.username} selected ${event.selectedFood
           .map((food) => food.foodName)
           .join(',')}`,
@@ -306,11 +306,16 @@ export class ClientGateWay
       // );
       // if (!tableToken) throw new Error('your tableToken is invalid');
       const tableToken = event.tableToken;
-      const clientGroup = await this.getCurrentClientGroupOrNew(tableToken);
+      const clientGroup = await this.clientService.getCurrentClientGroupOrNew(
+        tableToken,
+      );
       const order = await this.orderService.findOrderByClientGroupId(
         clientGroup.id,
       );
-      if (order.bill?.status === 'NOT_PAID' || order.bill?.status === 'PAID') {
+      if (
+        order?.bill?.status === 'NOT_PAID' ||
+        order?.bill?.status === 'PAID'
+      ) {
         throw new BadRequestException(
           `You can not choose food because you are in billing progress`,
         );
@@ -321,7 +326,7 @@ export class ClientGateWay
         clientGroup,
       );
 
-      await this.notiToTable(tableToken, clientGroup, {
+      await this.clientService.notiToTable(tableToken, clientGroup, {
         selectedFoodList: allSelectedFoodList,
         message: `${event.username} deselected ${deselectedFood.foodName}`,
       });
@@ -587,15 +592,19 @@ export class ClientGateWay
         updatedOrder.clientGroupId,
       );
     } else {
-      clientGroup = await this.getCurrentClientGroupOrNew(
+      clientGroup = await this.clientService.getCurrentClientGroupOrNew(
         updatedOrder.table.tableToken,
       );
     }
 
-    await this.notiToTable(updatedOrder.table.tableToken, clientGroup, {
-      message: 'waiter has been update your order',
-      order: updatedOrder,
-    });
+    await this.clientService.notiToTable(
+      updatedOrder.table.tableToken,
+      clientGroup,
+      {
+        message: 'waiter has been update your order',
+        order: updatedOrder,
+      },
+    );
     return updatedOrder;
   }
 
@@ -666,9 +675,13 @@ export class ClientGateWay
         updateData.clientGroupId,
         { selectedFoodList: [] },
       );
-    await this.notiToTable(updateData.tableToken, updatedClientGroup, {
-      message: `update order`,
-    });
+    await this.clientService.notiToTable(
+      updateData.tableToken,
+      updatedClientGroup,
+      {
+        message: `update order`,
+      },
+    );
     return updatedOrder;
   }
 
@@ -683,9 +696,7 @@ export class ClientGateWay
     this.server.to(order.restaurantId).emit('currentOrder', {
       orders: await this.orderService.findAllOrderByRestaurantId(
         order.restaurantId,
-        {
-          status: 'NOT_CHECKOUT',
-        },
+        { isNeedBilling: true },
       ),
     });
     const updatedClientGroup =
@@ -693,79 +704,12 @@ export class ClientGateWay
         createData.clientGroupId,
         { selectedFoodList: [] },
       );
-    await this.notiToTable(createData.tableToken, updatedClientGroup, {
-      message: `create order`,
-    });
-  }
-
-  // private async updateClientGroup(clientGroupId: string, clients: any[]) {
-  //   const clientList = clients.map((client) => ({
-  //     userId: client.data.userId,
-  //     ...client.data,
-  //   }));
-  //   return await this.clientGroupService.updateClientGroupById(clientGroupId, {
-  //     client: clientList,
-  //   });
-  // }
-
-  private async notiToTable(
-    tableToken: string,
-    clientGroup: ClientGroup & { client: Client[] },
-    detail?: any,
-  ) {
-    // const sockets = await this.getCurrentSocketInRoom(tableToken);
-    const table = await this.tableService.findTableByTableToken(tableToken);
-    // const allUser = sockets.map((user) => ({
-    //   userId: user.data.userId,
-    //   username: user.data.username,
-    // }));
-    const allSelectedFoodList = clientGroup.selectedFoodList;
-    // const clientGroup = await this.clientService.findClientById()
-    const order = await this.orderService.findOrderByClientGroupId(
-      clientGroup.id,
-    );
-    this.server.to(tableToken).emit('noti-table', {
-      restaurantId: table.restaurantId,
-      usernameInRoom: clientGroup.client,
-      selectedFoodList: allSelectedFoodList,
-      clientGroupId: clientGroup.id,
-      order: order ? order : undefined,
-      type: EVENT_TYPE.NOTI,
-      ...detail,
-    });
-  }
-
-  private async getCurrentClientGroupOrNew(tableToken: string) {
-    if (!tableToken) return;
-    const table = await this.tableService.findTableByTableToken(tableToken);
-    if (!table) throw new BadRequestException(`table does not exist`);
-
-    let clientGroup: ClientGroup & { client: Client[] };
-    const isOrderStillNotCheckout = this.isOrderStillNotCheckOut(table.order);
-    const clientGroupInProgress = this.findClientGroupInProgress(
-      table.clientGroup,
-    ) as ClientGroup & { client: Client[] };
-    if (isOrderStillNotCheckout || clientGroupInProgress) {
-      clientGroup = clientGroupInProgress;
-    } else {
-      clientGroup = await this.clientGroupService.createClientGroup({
-        table: { connect: { id: table.id } },
-      });
-    }
-    return clientGroup;
-  }
-
-  private isOrderStillNotCheckOut(order: Order[]) {
-    if (order.length === 0) return false;
-    return order.filter((order) => order.status === order_status.NOT_CHECKOUT)
-      .length
-      ? true
-      : false;
-  }
-
-  private findClientGroupInProgress(clientGroups: ClientGroup[]) {
-    return clientGroups.find(
-      (cg) => cg.status === client_group_status.IN_PROGRESS,
+    await this.clientService.notiToTable(
+      createData.tableToken,
+      updatedClientGroup,
+      {
+        message: `create order`,
+      },
     );
   }
 
@@ -790,13 +734,4 @@ export class ClientGateWay
     });
     return deselectedFood;
   }
-
-  // private async getSelectedFoodList(tableToken: string) {
-  //   const sockets = await this.getCurrentSocketInRoom(tableToken);
-  //   const selectedFoodList = sockets
-  //     .map((user) => user.data.selectedFoodList)
-  //     .filter((foodList) => foodList !== undefined || null)
-  //     .reduce((a: string[], b: string[]) => a.concat(b), []);
-  //   return selectedFoodList as FoodOrderInput[];
-  // }
 }
