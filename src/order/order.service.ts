@@ -28,10 +28,14 @@ export class OrderService {
     clientGroupId,
   }: ClientCreateOrderDto) {
     const table = await this.tableService.findTableByTableToken(tableToken);
+    const clientGroup = await this.prisma.clientGroup.findUnique({
+      where: { id: clientGroupId },
+    });
+    if (clientGroup.status === 'REJECT')
+      throw new BadRequestException('Order has been rejected');
     if (!table) throw new BadRequestException(`table does not exist`);
     if (table.restaurantId !== restaurantId)
       throw new BadRequestException(`table does not exist in this restaurant`);
-
     const isOrderNotCheckout = table.order.filter(
       (order) => order.status === order_status.NOT_CHECKOUT,
     ).length
@@ -55,9 +59,6 @@ export class OrderService {
         };
       }),
     };
-    const clientGroup = await this.prisma.clientGroup.findUnique({
-      where: { id: clientGroupId },
-    });
     if (!clientGroup)
       throw new BadRequestException(`clientGroupId: ${clientGroupId} invalid`);
     const createdOrder = await this.insertOrder({

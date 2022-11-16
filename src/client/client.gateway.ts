@@ -231,6 +231,8 @@ export class ClientGateWay
       let clientGroup = await this.clientService.getCurrentClientGroupOrNew(
         table.tableToken,
       );
+      if (clientGroup.status === 'REJECT')
+        throw Error('group has been rejected');
       const order = await this.orderService.findOrderByClientGroupId(
         clientGroup.id,
       );
@@ -309,6 +311,8 @@ export class ClientGateWay
       const clientGroup = await this.clientService.getCurrentClientGroupOrNew(
         tableToken,
       );
+      if (clientGroup.status === 'REJECT')
+        throw Error('group has been rejected');
       const order = await this.orderService.findOrderByClientGroupId(
         clientGroup.id,
       );
@@ -632,6 +636,7 @@ export class ClientGateWay
     const order = await this.orderService.findOrderByOrderId(
       updateData.orderId,
     );
+    if (order.status === 'CANCEL') throw Error('order has been rejected');
     if (order.bill && updateData.billMethod) {
       await this.billService.updateBillById(order.bill.id, {
         method: updateData.billMethod,
@@ -693,6 +698,7 @@ export class ClientGateWay
       tableToken: createData.tableToken,
     });
     if (!order) throw new BadRequestException('create order failed');
+    if (order.status === 'CANCEL') throw Error('order has been rejected');
     this.server.to(order.restaurantId).emit('currentOrder', {
       orders: await this.orderService.findAllOrderByRestaurantId(
         order.restaurantId,

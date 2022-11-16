@@ -88,25 +88,34 @@ export class ClientService {
   }
 
   async clearTable(tableToken: string) {
-    const clientGroup = await this.getCurrentClientGroupOrNew(tableToken);
-    const updatedClientGroup =
-      await this.clientGroupService.updateClientGroupById(clientGroup.id, {
-        order: { update: { status: 'CANCEL' } },
-        status: 'REJECT',
+    const table = await this.tableService.findTableByTableToken(tableToken);
+    const clientGroup = this.findClientGroupInProgress(table.clientGroup);
+    if (!clientGroup) return;
+    console.log('mee');
+    const order = await this.orderService.findOrderByClientGroupId(
+      clientGroup.id,
+    );
+    let updateOrderObj;
+    if (order) {
+      const foodOrders = await this.foodOrderService.findFoodOrdersByOrderId(
+        order.id,
+      );
+      const rejectFoodOrderPromises = foodOrders.map((fd) =>
+        this.foodOrderService.updateFoodOrderById(fd.id, { status: 'CANCEL' }),
+      );
+      await Promise.all([...rejectFoodOrderPromises]);
+      this.notiToTable(tableToken, clientGroup);
+      this.server.to(order.restaurantId).emit('currentOrder', {
+        orders: await this.orderService.findAllOrderByRestaurantId(
+          order.restaurantId,
+          { isNeedBilling: true },
+        ),
       });
-    const foodOrders = await this.foodOrderService.findFoodOrdersByOrderId(
-      updatedClientGroup.order.id,
-    );
-    const rejectFoodOrderPromises = foodOrders.map((fd) =>
-      this.foodOrderService.updateFoodOrderById(fd.id, { status: 'CANCEL' }),
-    );
-    await Promise.all([...rejectFoodOrderPromises]);
-    this.notiToTable(tableToken, clientGroup);
-    this.server.to(updatedClientGroup.order.restaurantId).emit('currentOrder', {
-      orders: await this.orderService.findAllOrderByRestaurantId(
-        updatedClientGroup.order.restaurantId,
-        { isNeedBilling: true },
-      ),
+      updateOrderObj = { order: { update: { status: 'CANCEL' } } };
+    }
+    await this.clientGroupService.updateClientGroupById(clientGroup.id, {
+      ...updateOrderObj,
+      status: 'REJECT',
     });
   }
 
@@ -159,7 +168,9 @@ export class ClientService {
       : false;
   }
 
-  private findClientGroupInProgress(clientGroups: ClientGroup[]) {
+  private findClientGroupInProgress(
+    clientGroups: (ClientGroup & { client: Client[] })[],
+  ): ClientGroup & { client: Client[] } {
     return clientGroups.find(
       (cg) => cg.status === client_group_status.IN_PROGRESS,
     );
