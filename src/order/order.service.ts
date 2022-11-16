@@ -48,14 +48,25 @@ export class OrderService {
     const validatedMenuList = await this.menuService.validateMenuList(
       foodOrderList,
     );
-
     const createManyFoodOrder: Prisma.FoodOrderCreateManyOrderInputEnvelope = {
       data: validatedMenuList.map((menu, index) => {
+        const optionCostArr = menu.options.map((option) => ({
+          optionId: option.id,
+          price: option.price,
+        }));
+        const totalOptionCost = optionCostArr.reduce(
+          (totalPrice, option) => option.price + totalPrice,
+          0,
+        );
+        const netPrice = menu.price + totalOptionCost;
         return {
           clientId: foodOrderList[index].userId,
           menuId: menu.id,
+          menuCost: menu.price,
           note: foodOrderList[index].note,
           optionIds: [...foodOrderList[index].selectedOptions],
+          optionCost: optionCostArr,
+          netPrice,
         };
       }),
     };

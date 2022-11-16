@@ -155,8 +155,11 @@ model FoodOrder {
   order                 Order    @relation(fields: [orderId], references: [id])
   menuId                String   @db.ObjectId
   menu                  Menu     @relation(fields: [menuId], references: [id])
+  menuCost              Int
   optionIds              String[]   @db.ObjectId
   options               Option[]  @relation(fields: [optionIds], references: [id])
+  optionCost            Json[]
+  netPrice              Int
   clientId              String[]    @db.ObjectId
   client               Client[]  @relation(fields: [clientId], references: [id])
   status                food_order_status @default(PENDING)

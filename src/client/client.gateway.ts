@@ -643,12 +643,24 @@ export class ClientGateWay
       );
       createManyFoodOrder = {
         data: validatedMenuList.map((menu, index) => {
+          const optionCostArr = menu.options.map((option) => ({
+            optionId: option.id,
+            price: option.price,
+          }));
           const foodOrder = updateData.additionalFoodOrderList[index];
+          const totalOptionCost = optionCostArr.reduce(
+            (totalPrice, option) => option.price + totalPrice,
+            0,
+          );
+          const netPrice = menu.price + totalOptionCost;
           return {
             clientId: foodOrder.userId,
             menuId: menu.id,
+            menuCost: menu.price,
             note: foodOrder.note,
             optionIds: foodOrder.selectedOptions,
+            optionCost: optionCostArr,
+            netPrice,
           };
         }),
       };
