@@ -24,4 +24,10 @@ export class BillService {
       where: { id },
     });
   }
+
+  async deleteBillById(billId: string) {
+    return await this.prisma.bill.delete({
+      where: { id: billId },
+    });
+  }
 }

@@ -528,7 +528,30 @@ export class ClientGateWay
     await Promise.all([deleteFoodOrderOfThatClient]);
   }
 
+  async handleCancelBill(updateDto: AdminUpdateOrderDto) {
+    const [, updatedOrder] = await Promise.all([
+      this.billService.deleteBillById(updateDto.bill.billId),
+      this.orderService.updateOrderById(updateDto.orderId, {
+        clientState: 'CONFIRMED',
+        status: 'NOT_CHECKOUT',
+      }),
+    ]);
+    const clientGroup = await this.clientService.getCurrentClientGroupOrNew(
+      updatedOrder.table.tableToken,
+    );
+    await this.clientService.notiToTable(
+      updatedOrder.table.tableToken,
+      clientGroup,
+      { message: 'waiter has been update your order', order: updatedOrder },
+    );
+    return updatedOrder;
+  }
+
   async adminUpdateClientOrder(updateDto: AdminUpdateOrderDto) {
+    if (updateDto.bill?.status === 'CANCEL') {
+      const order = await this.handleCancelBill(updateDto);
+      return order;
+    }
     if (updateDto.deleteFoodOrderList?.length) {
       await this.deleteFoodOrderList(
         updateDto.deleteFoodOrderList,
@@ -564,9 +587,7 @@ export class ClientGateWay
     if (updateDto.bill) {
       const bill = await this.billService.updateBillById(
         updateDto.bill.billId,
-        {
-          status: updateDto.bill.status,
-        },
+        { status: updateDto.bill.status },
       );
       isPaid = bill.status === 'PAID' ? true : false;
     }
