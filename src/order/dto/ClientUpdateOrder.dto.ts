@@ -30,7 +30,7 @@ export class ClientUpdateOrderDto {
   clientState?: order_client_state;
 
   @IsOptional()
-  @IsEnum(bill_method)
+  // @IsEnum(bill_method)
   billMethod?: bill_method;
 
   @IsNotEmpty()
