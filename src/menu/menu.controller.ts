@@ -6,18 +6,30 @@ import {
   Param,
   Post,
   Put,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { Admin } from '@prisma/client';
 import { CurrentUser } from 'src/auth/current-user';
-import { JwtAdminAuthGuard } from 'src/auth/guards/jwt.guard';
-import { CreateMenuList } from 'src/menu/dto/CreateMenuList.dto';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { ROLE_LIST } from 'src/auth/enums/role-list.enum';
+import { JwtAdminAuthGuard } from 'src/auth/guards/jwt-admin.guard';
+import { RoleGuard } from 'src/auth/guards/role.guard';
+import { S3_FOLDER } from 'src/file-upload/enum/s3-folder.enum';
+import { FileUploadService } from 'src/file-upload/file-upload.service';
+import { FileValidatorPipe } from 'src/file-upload/pipe/file-validator.pipe';
+import { CreateMenuDto } from './dto/CreateMenu.dto';
 import { UpdateMenuInput } from './dto/UpdateMenu.dto';
 import { MenuService } from './menu.service';
 
 @Controller('menu')
 export class MenuController {
-  constructor(private readonly menuService: MenuService) {}
+  constructor(
+    private readonly menuService: MenuService,
+    private readonly uploadService: FileUploadService,
+  ) {}
   @Get('/:menuId')
   async getMenuById(@Param('menuId') menuId: string) {
     const menu = await this.menuService.findMenuById(menuId);
@@ -28,36 +40,43 @@ export class MenuController {
   }
 
   @Post('/')
-  @UseGuards(JwtAdminAuthGuard)
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(ROLE_LIST.ROOT)
+  @UseInterceptors(FilesInterceptor('menuImage'))
   async insertMenu(
-    @Body() menuList: CreateMenuList,
+    @UploadedFiles(new FileValidatorPipe()) images: Express.Multer.File[],
+    @Body() menuDto: CreateMenuDto,
     @CurrentUser() admin: Admin,
   ) {
-    // TODO imageUrl
-    const imageUrl = 'mockUrl';
-    const { menuConflictList, menuSuccessList } =
-      await this.menuService.addMenu(menuList, imageUrl, admin);
+    const uploadedImage = await this.uploadService.uploadS3(
+      images,
+      S3_FOLDER.MENU,
+    );
+    const menu = await this.menuService.addMenu(menuDto, uploadedImage, admin);
     return {
-      data: {
-        success: menuSuccessList,
-        conflict: menuConflictList,
-      },
+      data: menu,
     };
   }
 
   @Put('/:menuId')
-  @UseGuards(JwtAdminAuthGuard)
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(ROLE_LIST.ROOT)
+  @UseInterceptors(FilesInterceptor('menuImage'))
   async updateMenu(
+    @UploadedFiles(new FileValidatorPipe()) images: Express.Multer.File[],
     @Body() updateDetail: UpdateMenuInput,
     @Param('menuId') menuId: string,
     @CurrentUser() admin: Admin,
   ) {
     // TODO imageUrl
-    const imageUrl = 'mockUrl';
+    const uploadedImages = await this.uploadService.uploadS3(
+      images,
+      S3_FOLDER.MENU,
+    );
     const updatedMenu = await this.menuService.updateMenu(
       menuId,
       updateDetail,
-      imageUrl,
+      uploadedImages,
       admin,
     );
     return {
@@ -67,7 +86,8 @@ export class MenuController {
   }
 
   @Delete('/:menuId')
-  @UseGuards(JwtAdminAuthGuard)
+  @UseGuards(JwtAdminAuthGuard, RoleGuard)
+  @Roles(ROLE_LIST.ROOT)
   async deleteMenu(
     @Param('menuId') menuId: string,
     @CurrentUser() admin: Admin,

@@ -4,9 +4,14 @@ export class UpdateTableInput {
   @IsNotEmpty()
   @IsOptional()
   @IsString()
-  tableName: string;
+  tableName?: string;
+
+  @IsNotEmpty()
+  @IsOptional()
+  @IsBoolean()
+  isRenewQrcode?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  isActivate: boolean;
+  isActivate?: boolean;
 }

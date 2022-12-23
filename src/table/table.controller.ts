@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { TableService } from './table.service';
 import { Response } from 'express';
-import { JwtAdminAuthGuard } from 'src/auth/guards/jwt.guard';
+import { JwtAdminAuthGuard } from 'src/auth/guards/jwt-admin.guard';
 import { CreateTableRequest } from './dto/CreateTableRequest';
 import { CurrentUser } from 'src/auth/current-user';
 import { Admin } from '@prisma/client';

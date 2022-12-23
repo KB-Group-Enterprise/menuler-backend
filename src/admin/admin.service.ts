@@ -1,25 +1,36 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { RegisterAdminInput } from '../auth/dto/RegisterAdmin.dto';
+import { RegisterAdminInput } from '../restaurant/dto/restaurant/RegisterAdmin.dto';
 import { PrismaException } from 'src/exception/Prisma.exception';
+import { ROLE_LIST } from 'src/auth/enums/role-list.enum';
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createAdmin(detail: RegisterAdminInput) {
+  async createAdmin(restaurantId: string, detail: RegisterAdminInput) {
     const isAdminExist = await this.prisma.admin.findUnique({
       where: { email: detail.email },
     });
     if (isAdminExist)
       throw new ConflictException(`email ${detail.email} already exist`);
+    const staffRole = await this.prisma.role.findFirst({
+      where: { key: ROLE_LIST.STAFF },
+    });
+    if (!staffRole) throw new BadRequestException('Can not find role');
     const admin = await this.prisma.admin.create({
       data: {
+        firstname: detail.firstname,
+        lastname: detail.lastname,
         email: detail.email,
         password: detail.password,
+        restaurant: { connect: { id: restaurantId } },
+        role: { connect: { id: staffRole.id } },
       },
     });
     return admin;
@@ -36,8 +47,9 @@ export class AdminService {
   async findAdminByAdminId(adminId: string) {
     const admin = await this.prisma.admin.findUnique({
       where: { id: adminId },
+      include: { role: true },
     });
-    if (!admin) throw new NotFoundException('user not found');
+    if (!admin) throw new UnauthorizedException('user not found');
     return admin;
   }
 
@@ -45,8 +57,18 @@ export class AdminService {
     const admin = await this.prisma.admin.findUnique({
       where: { email },
     });
-    if (!admin) throw new NotFoundException('user not found');
+    if (!admin) throw new UnauthorizedException('user not found');
     return admin;
+  }
+
+  async deleteAdminByAdminId(adminId: string) {
+    try {
+      await this.prisma.admin.delete({
+        where: { id: adminId },
+      });
+    } catch (error) {
+      throw new PrismaException(error);
+    }
   }
 
   async deleteAdminByEmail(email: string) {
@@ -58,19 +80,36 @@ export class AdminService {
       throw new PrismaException(error);
     }
   }
-  async adminProfile(adminId: string) {
-    return this.prisma.admin.findUnique({ where: { id: adminId }, select: {
-      email: true,
-      restaurant: {
-        select: {
-          id: true,
-          restaurantName: true,
-          isActivate: true,
-          status: true,
-          registerOn: true,
-          location: true,
-        }
-      }
-    }})
+  async getAdminProfile(adminId: string) {
+    return this.prisma.admin.findUnique({
+      where: { id: adminId },
+      select: {
+        email: true,
+        restaurant: {
+          select: {
+            id: true,
+            restaurantName: true,
+            isActivate: true,
+            status: true,
+            registerOn: true,
+            location: true,
+          },
+        },
+      },
+    });
+  }
+
+  async findAllAdminByRestaurantId(restaurantId: string) {
+    return await this.prisma.admin.findMany({
+      where: { restaurantId },
+      select: {
+        password: false,
+        email: true,
+        firstname: true,
+        id: true,
+        lastname: true,
+        restaurantId: true,
+      },
+    });
   }
 }

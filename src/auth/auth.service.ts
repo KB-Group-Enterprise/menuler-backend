@@ -1,27 +1,30 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AdminService } from '../admin/admin.service';
 import { CredentialInput } from './dto/Credential.dto';
-import { RegisterAdminInput } from './dto/RegisterAdmin.dto';
+import { RegisterAdminInput } from '../restaurant/dto/restaurant/RegisterAdmin.dto';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Admin } from '@prisma/client';
+import { PrismaService } from 'src/prisma/prisma.service';
 @Injectable()
 export class AuthService {
   constructor(
     private readonly adminService: AdminService,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService,
   ) {}
 
-  async registerAdmin(data: RegisterAdminInput) {
+  async registerAdmin(restaurantId: string, data: RegisterAdminInput) {
     data.password = await this.hashPassword(data.password);
-    const admin = await this.adminService.createAdmin(data);
-    const accessToken = await this.generateAccessToken(admin.id, admin.email);
-    return {
-      admin,
-      accessToken: accessToken,
-    };
+    const admin = await this.adminService.createAdmin(restaurantId, data);
+    return admin;
   }
 
   async loginAdmin(data: CredentialInput) {
@@ -31,34 +34,62 @@ export class AuthService {
       admin.password,
     );
     if (!isPasswordValid)
-      throw new UnauthorizedException('email or password wrong');
+      throw new HttpException(
+        'email or password wrong',
+        HttpStatus.BAD_REQUEST,
+      );
     const accessToken = await this.generateAccessToken(admin.id, admin.email);
     return { accessToken };
   }
 
-  private async hashPassword(password: string) {
+  // async loginRestaurant(data: CredentialInput) {
+  //   const restaurant = await this.restaurantService.findRestaurantByEmail(
+  //     data.email,
+  //   );
+  //   const isPasswordValid = await this.verifyPassword(
+  //     data.password,
+  //     restaurant.password,
+  //   );
+  //   if (!isPasswordValid)
+  //     throw new UnauthorizedException('email or password wrong');
+  //   const accessToken = await this.generateAccessToken(
+  //     restaurant.id,
+  //     restaurant.email,
+  //   );
+  //   return { accessToken };
+  // }
+
+  async hashPassword(password: string) {
     return await bcrypt.hash(password, 10);
   }
 
-  private async verifyPassword(password: string, hashedPassword: string) {
+  async verifyPassword(password: string, hashedPassword: string) {
     return await bcrypt.compare(password, hashedPassword);
   }
 
-  private async generateAccessToken(adminId: string, email: string) {
+  async generateAccessToken(id: string, email: string) {
     return await this.jwtService.signAsync(
-      { sub: adminId, email },
+      { sub: id, email },
       {
         secret: this.configService.get('JWT_ACCESS_SECRET'),
-        expiresIn: '15m',
+        expiresIn: '60m',
       },
     );
   }
 
-  async getProfile(admin: Admin) {
-    const result = await this.adminService.adminProfile(admin.id);
-    return result;
+  async findRoleByKey(key: string) {
+    try {
+      return await this.prisma.role.findFirst({
+        where: { key },
+      });
+    } catch (error) {
+      throw new BadRequestException('role invalid');
+    }
   }
 
+  verifyAccessToken(accessToken: string): { sub: string; email: string } {
+    return this.jwtService.decode(accessToken) as any;
+  }
 
   // TODO refreshToken
 }

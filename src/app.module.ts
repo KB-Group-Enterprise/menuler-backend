@@ -15,18 +15,30 @@ import { ConfigModule } from '@nestjs/config';
 import { MenuModule } from './menu/menu.module';
 import { OrderModule } from './order/order.module';
 import { OrderService } from './order/order.service';
+import { ClientGroupModule } from './client-group/client-group.module';
+import { ClientModule } from './client/client.module';
+import { FileUploadModule } from './file-upload/file-upload.module';
+import { FoodOrderModule } from './food-order/food-order.module';
+import { OptionModule } from './option/option.module';
+import { BillModule } from './bill/bill.module';
+import { BankAccountModule } from './bank-account/bank-account.module';
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule.forRoot(),
+    FileUploadModule.forRoot(),
     RestaurantModule,
-    PrismaModule,
     TableModule,
     AdminModule,
     AuthModule,
     MenuModule,
     OrderModule,
+    ClientGroupModule,
+    ClientModule,
+    FoodOrderModule,
+    OptionModule,
+    BillModule,
+    BankAccountModule,
   ],
   controllers: [AppController, RestaurantController],
   providers: [

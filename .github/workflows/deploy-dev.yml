@@ -1,0 +1,58 @@
+name: deploy-non-prd
+on:
+  push:
+    branches:
+      - dev
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout Dev
+        uses: actions/checkout@v2
+        with:
+          ref: dev
+      - name: Create .env file
+        run: |
+          echo PORT=${{ secrets.ENV_DEV_PORT }} >> .env
+          echo JWT_ACCESS_SECRET=${{ secrets.ENV_DEV_JWT_ACCESS }} >> .env
+          echo DATABASE_URL=${{ secrets.ENV_DEV_DATABASE_URL }} >> .env
+          echo FRONTEND_URL=${{ secrets.ENV_DEV_FRONTEND_URL }} >> .env
+          echo S3_SECRET_KEY=${{ secrets.ENV_DEV_S3_SECRET_KEY }} >> .env
+          echo S3_ACCESS_KEY=${{ secrets.ENV_DEV_S3_ACCESS_KEY }} >> .env
+          echo S3_REGION=${{ secrets.ENV_DEV_S3_REGION }} >> .env
+          echo S3_BUCKET_ID=${{ secrets.ENV_DEV_S3_BUCKET_ID }} >> .env
+      - name: Send docker-compose to host
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: docker-compose.yaml
+          target: ~/menuler-backend/
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/kb-group-enterprise/menuler-backend:dev
+  deploy:
+    needs: build
+    runs-on: ubuntu-20.04
+    steps:
+      - name: docker-compose up in host
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/menuler-backend
+            docker-compose down
+            docker pull ghcr.io/kb-group-enterprise/menuler-backend:dev
+            docker-compose up -d

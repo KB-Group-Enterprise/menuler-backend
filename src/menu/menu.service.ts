@@ -1,8 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { Admin, Menu, Prisma } from '@prisma/client';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
+import { Admin, Prisma } from '@prisma/client';
+import { S3 } from 'aws-sdk';
 import { PrismaException } from 'src/exception/Prisma.exception';
+import { FoodOrderInput } from 'src/order/dto/FoodOrderInput.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateMenuList } from './dto/CreateMenuList.dto';
+import { CreateMenuDto } from './dto/CreateMenu.dto';
 
 @Injectable()
 export class MenuService {
@@ -19,72 +25,73 @@ export class MenuService {
     return existMenu ? true : false;
   }
 
-  async addMenu({ menuList }: CreateMenuList, imageUrl: string, admin: Admin) {
-    const menuSuccessList: Menu[] = [];
-    const menuConflictList: { foodName: string }[] = [];
-    for (const menu of menuList) {
-      const { category, foodName, price, description, isAvailable } = menu;
-      const isMenuExist = await this.checkExistMenu(
+  async addMenu(
+    menuDto: CreateMenuDto,
+    uploadedImage: S3.ManagedUpload.SendData[],
+    admin: Admin,
+  ) {
+    const { category, foodName, price, description, menuStatus } = menuDto;
+    const isMenuExist = await this.checkExistMenu(foodName, admin.restaurantId);
+    if (isMenuExist) throw new ConflictException('menu name is exist');
+    const createdMenu = await this.prisma.menu.create({
+      data: {
+        category,
         foodName,
-        admin.restaurantId,
-      );
-      if (!isMenuExist) {
-        const createdMenu = await this.prisma.menu.create({
-          data: {
-            category,
-            foodName,
-            price,
-            description,
-            isAvailable,
-            imageUrl,
-            restaurantId: admin.restaurantId,
-          },
-        });
-        menuSuccessList.push(createdMenu);
-      } else {
-        menuConflictList.push({ foodName });
-      }
-    }
-    return {
-      menuSuccessList,
-      menuConflictList,
-    };
+        price: Number(price),
+        description,
+        menuStatus,
+        imageUrl: uploadedImage[0]?.Location,
+        restaurant: { connect: { id: admin.restaurantId } },
+      },
+    });
+    return createdMenu;
   }
 
   async updateMenu(
     menuId: string,
     details: Prisma.MenuUpdateInput,
-    imageUrl: string,
+    uploadedImage: S3.ManagedUpload.SendData[],
     admin: Admin,
   ) {
-    try {
-      const updatedMenu = await this.prisma.menu.update({
-        data: { ...details, updatedAt: new Date(), imageUrl },
-        where: {
-          restaurantId_id: {
-            id: menuId,
-            restaurantId: admin.restaurantId,
-          },
-        },
-      });
-      return updatedMenu;
-    } catch (error) {
-      throw new PrismaException(error);
+    const additional: any = {};
+
+    if (uploadedImage[0]) {
+      additional.imageUrl = uploadedImage[0].Location;
     }
+    delete details['menuImage'];
+    const updatedMenu = await this.prisma.menu.update({
+      data: {
+        ...details,
+        updatedAt: new Date(),
+        price: Number(details.price),
+        ...additional,
+      },
+      where: {
+        restaurantId_id: {
+          id: menuId,
+          restaurantId: admin.restaurantId,
+        },
+      },
+      include: { options: true },
+    });
+    return updatedMenu;
   }
 
   async findAllMenuByRestaurantId(restaurantId: string) {
-    const { menu } = await this.prisma.restaurant.findUnique({
+    if (!restaurantId) throw new BadRequestException('restaurant Id invalid');
+    const restaurant = await this.prisma.restaurant.findUnique({
       where: { id: restaurantId },
-      include: { menu: true },
+      include: { menu: { include: { options: true } } },
     });
-    return menu;
+    if (!restaurant) throw new BadRequestException('restaurant id invalid');
+    return restaurant.menu;
   }
 
   async findMenuById(menuId: string) {
     try {
       return await this.prisma.menu.findUnique({
         where: { id: menuId },
+        include: { options: true },
       });
     } catch (error) {
       throw new PrismaException(error);
@@ -104,5 +111,27 @@ export class MenuService {
     } catch (error) {
       throw new PrismaException(error);
     }
+  }
+
+  async validateMenuList(foodOrders: FoodOrderInput[]) {
+    if (!foodOrders?.length)
+      throw new BadRequestException('foodOrders must be an array');
+    const menuPromiseArr = foodOrders.map((foodOrder) =>
+      this.validateMenu(foodOrder),
+    );
+    try {
+      return await Promise.all([...menuPromiseArr]);
+    } catch (error) {
+      throw new BadRequestException('validate menu list failed');
+    }
+  }
+
+  async validateMenu(foodOrder: FoodOrderInput) {
+    const validatedMenu = await this.findMenuById(foodOrder.menuId);
+    if (!validatedMenu)
+      throw new BadRequestException('this menu does not exist');
+    if (validatedMenu.menuStatus === 'CANCEL')
+      throw new BadRequestException('this menu has been cancel');
+    return validatedMenu;
   }
 }

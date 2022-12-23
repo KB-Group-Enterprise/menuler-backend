@@ -1,4 +1,9 @@
-import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { v4 as uuidv4 } from 'uuid';
 import { Admin, Prisma, Table } from '@prisma/client';
@@ -28,7 +33,7 @@ export class TableService {
         isSuccess: false,
         table: existQrcode,
       };
-    };
+    }
     const tableToken = this.generateTableToken();
     const newQrcode = await this.prisma.table.create({
       data: {
@@ -48,17 +53,22 @@ export class TableService {
   }
 
   async findTableByTableToken(tableToken: string) {
-    const table = await this.prisma.table.findFirst({
+    const table = await this.prisma.table.findUnique({
       where: { tableToken },
+      include: {
+        order: true,
+        clientGroup: { include: { client: true } },
+        restaurant: true,
+      },
     });
-    if (!table) throw new NotFoundException(`table not found`);
     return table;
   }
+
   private generateQrcodeImageUrl(
     tableToken: string,
     { height, width }: QrcodeSize,
   ) {
-    return `http://api.qrserver.com/v1/create-qr-code/?data=${process.env.FRONTEND_URL}/customer/menu/${tableToken}!&size=${width}x${height}`;
+    return `http://api.qrserver.com/v1/create-qr-code/?data=${process.env.FRONTEND_URL}/customer/menu/${tableToken}&size=${width}x${height}`;
   }
 
   private generateTableToken() {
@@ -123,15 +133,29 @@ export class TableService {
   async findTableById(tableId: string) {
     const table = await this.prisma.table.findUnique({
       where: { id: tableId },
-      include: { order: true },
+      include: { order: true, clientGroup: true },
     });
     return table;
   }
 
   async updateTable(tableId: string, details: UpdateTableInput, admin: Admin) {
     try {
+      let tableToken: string | undefined;
+      let qrcodeUrl: string | undefined;
+      if (details.isRenewQrcode) {
+        tableToken = this.generateTableToken();
+        qrcodeUrl = this.generateQrcodeImageUrl(tableToken, {
+          height: 400,
+          width: 400,
+        });
+      }
       const table = await this.prisma.table.update({
-        data: { ...details },
+        data: {
+          isActivate: details.isActivate,
+          tableName: details.tableName,
+          qrcodeImageUrl: qrcodeUrl,
+          tableToken: tableToken,
+        },
         where: {
           id_restaurantId: {
             id: tableId,
@@ -147,6 +171,17 @@ export class TableService {
 
   async deleteTable(tableId: string, admin: Admin) {
     try {
+      const clientGroupDeletePromise = this.prisma.clientGroup.deleteMany({
+        where: { AND: { tableId } },
+      });
+      const orderDeletePromise = this.prisma.order.deleteMany({
+        where: { AND: { tableId, restaurantId: admin.restaurantId } },
+      });
+      try {
+        await Promise.all([clientGroupDeletePromise, orderDeletePromise]);
+      } catch (error) {
+        console.log(error);
+      }
       await this.prisma.table.delete({
         where: {
           id_restaurantId: {
@@ -156,7 +191,20 @@ export class TableService {
         },
       });
     } catch (error) {
-      throw new PrismaException(error);
+      console.log(error);
+      throw error;
+      // throw new PrismaException(error);
     }
+  }
+
+  async updateTableById(tableId: string, details: Prisma.TableUpdateInput) {
+    return await this.prisma.table.update({
+      where: {
+        id: tableId,
+      },
+      data: {
+        ...details,
+      },
+    });
   }
 }

@@ -7,23 +7,25 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAdminAuthGuard } from 'src/auth/guards/jwt.guard';
-import { CreateOrderDto } from './dto/CreateOrder.dto';
+import { Admin, Restaurant } from '@prisma/client';
+import { CurrentUser } from 'src/auth/current-user';
+import { JwtAdminAuthGuard } from 'src/auth/guards/jwt-admin.guard';
+import { OrderFilter } from './dto/OrderFilter.dto';
 import { OrderService } from './order.service';
 
 @Controller('order')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
-  @Post('/create')
-  async createOrder(@Body() orderDetails: CreateOrderDto) {
-    // TODO get clientId
-    const order = await this.orderService.createOrder(orderDetails);
-    return {
-      data: order,
-      message: 'create order success',
-    };
-  }
+  // @Post('/create')
+  // async createOrder(@Body() orderDetails: CreateOrderDto) {
+  //   // TODO get clientId
+  //   const order = await this.orderService.createOrder(orderDetails);
+  //   return {
+  //     data: order,
+  //     message: 'create order success',
+  //   };
+  // }
 
   @Get('/:orderId')
   async getOrder(@Param('orderId') orderId: string) {
@@ -35,10 +37,21 @@ export class OrderController {
     };
   }
 
-  // @Get('/:restaurantId/current_order')
-  // async getCurrentOrderByRestaurantId(
-  //   @Param('restaurantId') restaurantId: string,
-  // ) {}
+  @Post('/orders')
+  @UseGuards(JwtAdminAuthGuard)
+  async getAllOrderByRestaurantId(
+    @Body() filter: OrderFilter,
+    @CurrentUser() account: Admin,
+  ) {
+    const orders = await this.orderService.findAllOrderByRestaurantId(
+      account.restaurantId,
+      filter,
+    );
+    return {
+      data: orders,
+      message: 'get all order by restaurant id',
+    };
+  }
 
   @Delete('/:orderId')
   @UseGuards(JwtAdminAuthGuard)
